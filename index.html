@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Online Catalogue</title>
+<style>
+:root{--bg:#181818;--panel:#242424;--text:#f4f4f4;--muted:#aaa}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
+#app{height:100%;display:flex;flex-direction:column}
+header{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#111;border-bottom:1px solid #333;z-index:10}
+.title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.actions{display:flex;gap:8px;align-items:center}
+button{border:0;border-radius:8px;background:#303030;color:white;padding:9px 12px;cursor:pointer;font-size:14px}button:hover{background:#444}button:disabled{opacity:.35;cursor:default}
+#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;padding:18px 70px 14px;overflow:hidden}
+#book{display:flex;align-items:center;justify-content:center;gap:3px;max-width:100%;max-height:100%;filter:drop-shadow(0 12px 25px rgba(0,0,0,.45));transform-origin:center center;transition:transform .18s ease}
+.pageWrap{background:white;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}.pageWrap canvas{display:block;max-width:100%;max-height:100%}
+.pageWrap.left{box-shadow:inset -10px 0 15px -15px #000}.pageWrap.right{box-shadow:inset 10px 0 15px -15px #000}
+.nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:62px;border-radius:10px;font-size:30px;padding:0;background:rgba(0,0,0,.45)}#prev{left:12px}#next{right:12px}
+footer{height:48px;background:#111;border-top:1px solid #333;display:flex;align-items:center;justify-content:center;gap:12px;font-size:14px;color:var(--muted)}
+#pageInput{width:52px;background:#222;border:1px solid #444;border-radius:6px;color:white;text-align:center;padding:5px}
+#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#181818;z-index:20;font-size:16px}.hidden{display:none!important}
+@media(max-width:760px){header{height:50px;padding:0 10px}.title{font-size:13px;max-width:55vw}#stage{padding:10px 48px}.nav{width:38px;height:54px;font-size:26px}#prev{left:5px}#next{right:5px}footer{height:44px}.desktopOnly{display:none}.pageWrap.left{display:none}}
+@media print{body{display:none!important}}
+</style>
+</head>
+<body oncontextmenu="return false">
+<div id="app">
+<header><div class="title">Detection of Traffic Violations and Congestion Using Deep Learning</div><div class="actions"><button id="zoomOut" title="Zoom out">−</button><button id="zoomIn" title="Zoom in">＋</button><button id="fullscreen" title="Fullscreen">⛶</button></div></header>
+<main id="stage"><div id="loading">Loading catalogue…</div><button class="nav" id="prev" aria-label="Previous page">‹</button><div id="book"></div><button class="nav" id="next" aria-label="Next page">›</button></main>
+<footer><span>Page</span><input id="pageInput" inputmode="numeric" value="1"><span id="total">/ –</span><span class="desktopOnly">• Use ← → keys to browse</span></footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module"></script>
+<script type="module">
+import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+const book=document.querySelector('#book'), stage=document.querySelector('#stage'), loading=document.querySelector('#loading');
+const prev=document.querySelector('#prev'), next=document.querySelector('#next'), input=document.querySelector('#pageInput'), total=document.querySelector('#total');
+let pdf=null,current=1,zoom=1,renderToken=0;
+const mobile=()=>window.matchMedia('(max-width:760px)').matches;
+function spreadStart(n){if(mobile()) return n; return n===1?1:(n%2===0?n:n-1)}
+async function renderPage(n, cls=''){
+ if(n<1||n>pdf.numPages) return null;
+ const page=await pdf.getPage(n), vp0=page.getViewport({scale:1});
+ const availH=stage.clientHeight-28, pages=mobile()?1:2, availW=(stage.clientWidth-150)/pages;
+ const fit=Math.min(availW/vp0.width,availH/vp0.height)*zoom;
+ const viewport=page.getViewport({scale:fit*Math.min(window.devicePixelRatio||1,2)});
+ const cssW=viewport.width/Math.min(window.devicePixelRatio||1,2), cssH=viewport.height/Math.min(window.devicePixelRatio||1,2);
+ const wrap=document.createElement('div');wrap.className='pageWrap '+cls;wrap.style.width=cssW+'px';wrap.style.height=cssH+'px';
+ const canvas=document.createElement('canvas');canvas.width=viewport.width;canvas.height=viewport.height;canvas.style.width=cssW+'px';canvas.style.height=cssH+'px';wrap.appendChild(canvas);
+ await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;return wrap;
+}
+async function draw(){const token=++renderToken;book.innerHTML='';const s=spreadStart(current);current=s;input.value=current;total.textContent='/ '+pdf.numPages;
+ if(mobile()){const p=await renderPage(current,'right');if(token!==renderToken)return;if(p)book.appendChild(p)}else if(current===1){const p=await renderPage(1,'right');if(token!==renderToken)return;if(p)book.appendChild(p)}else{const [l,r]=await Promise.all([renderPage(current,'left'),renderPage(current+1,'right')]);if(token!==renderToken)return;if(l)book.appendChild(l);if(r)book.appendChild(r)}
+ prev.disabled=current<=1;next.disabled=mobile()?current>=pdf.numPages:current>=pdf.numPages-1;loading.classList.add('hidden');}
+function go(delta){if(!pdf)return; current=Math.max(1,Math.min(pdf.numPages,current+delta));draw()}
+prev.onclick=()=>go(mobile()?-1:(current===2?-1:-2));next.onclick=()=>go(mobile()?1:(current===1?1:2));
+input.onchange=()=>{let n=parseInt(input.value)||1;current=Math.max(1,Math.min(pdf.numPages,n));draw()};
+document.querySelector('#zoomIn').onclick=()=>{zoom=Math.min(1.8,zoom+.15);draw()};document.querySelector('#zoomOut').onclick=()=>{zoom=Math.max(.7,zoom-.15);draw()};
+document.querySelector('#fullscreen').onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
+window.addEventListener('keydown',e=>{if(e.key==='ArrowRight')next.click();if(e.key==='ArrowLeft')prev.click()});let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(draw,180)});
+document.addEventListener('dragstart',e=>e.preventDefault());document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&(e.key==='s'||e.key==='p'))e.preventDefault()});
+try{pdf=await pdfjsLib.getDocument({url:'catalogue.pdf',disableAutoFetch:false}).promise;await draw()}catch(e){loading.textContent='Could not load catalogue. Open this site through a web server (not directly as a local file).';console.error(e)}
+</script>
+</body></html>
