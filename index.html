@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catalogue</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#181818}
+body{font-family:Arial;color:#eee}
+#stage{height:calc(100% - 54px);display:flex;align-items:center;justify-content:center;position:relative}
+#single,#spread{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#single{z-index:5}
+#single img{height:90%;width:auto;max-width:92%;object-fit:contain;background:#fff;box-shadow:0 8px 35px #000}
+#spread{visibility:hidden}
+.page{background:#fff;overflow:hidden}.page img{width:100%;height:100%;display:block}
+#loading{position:absolute;z-index:20}
+footer{height:54px;background:#101010;border-top:1px solid #333;display:flex;align-items:center;justify-content:center;gap:18px}
+button{width:42px;height:38px;border:1px solid #444;border-radius:6px;background:#292929;color:#fff;font-size:24px;cursor:pointer}
+#count{min-width:120px;text-align:center;font-size:13px}
+</style>
+</head>
+<body>
+<div id="stage">
+ <div id="loading">Preparing catalogue…</div>
+ <div id="single"></div>
+ <div id="spread"></div>
+</div>
+<footer><button id="prev">‹</button><span id="count">Page 1 / 13</span><button id="next">›</button></footer>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const single=document.getElementById("single"), spread=document.getElementById("spread");
+const count=document.getElementById("count"), stage=document.getElementById("stage");
+let flip, total, imgs=[], mode="cover";
+
+async function start(){
+ const pdf=await pdfjsLib.getDocument("catalogue.pdf").promise; total=pdf.numPages;
+ let ratio;
+ for(let n=1;n<=total;n++){
+   const p=await pdf.getPage(n), v=p.getViewport({scale:2});
+   if(!ratio) ratio=v.width/v.height;
+   const c=document.createElement("canvas"); c.width=v.width;c.height=v.height;
+   await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
+   imgs.push(c.toDataURL("image/jpeg",.96));
+ }
+ // REAL standalone cover: no flipbook canvas exists behind it, so there cannot be a blank left sheet.
+ single.innerHTML=`<img src="${imgs[0]}" alt="Page 1">`;
+
+ // Flipbook contains ONLY PDF pages 2..13.
+ const h=Math.floor(Math.min(stage.clientHeight*.90,(stage.clientWidth*.92)/(2*ratio)));
+ const w=Math.floor(h*ratio);
+ flip=new St.PageFlip(spread,{width:w,height:h,size:"fixed",showCover:false,usePortrait:false,
+   drawShadow:true,maxShadowOpacity:.55,flippingTime:900,autoSize:true,mobileScrollSupport:false,
+   useMouseEvents:true,showPageCorners:true});
+ flip.loadFromImages(imgs.slice(1));
+ flip.on("flip",e=>updateSpread(e.data));
+ document.getElementById("loading").style.display="none";
+}
+function showCover(){
+ mode="cover"; spread.style.visibility="hidden";single.style.display="flex";
+ count.textContent=`Page 1 / ${total}`;
+}
+function openBook(){
+ mode="book";single.style.display="none";spread.style.visibility="visible";
+ flip.turnToPage(0);count.textContent=`Pages 2–3 / ${total}`;
+}
+function updateSpread(i){
+ const left=2 + Math.floor(i/2)*2, right=Math.min(left+1,total);
+ count.textContent=right>left?`Pages ${left}–${right} / ${total}`:`Page ${left} / ${total}`;
+}
+document.getElementById("next").onclick=()=>{
+ if(mode==="cover"){openBook();return}
+ flip.flipNext("bottom");
+};
+document.getElementById("prev").onclick=()=>{
+ if(mode==="cover")return;
+ if(flip.getCurrentPageIndex()<=1){showCover();return}
+ flip.flipPrev("bottom");
+};
+document.addEventListener("keydown",e=>{
+ if(e.key==="ArrowRight")document.getElementById("next").click();
+ if(e.key==="ArrowLeft")document.getElementById("prev").click();
+});
+start();
+</script>
+</body>
+</html>
