@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traffic Catalogue</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#181818;font-family:Arial,sans-serif;color:#eee}
+#app{height:100%;display:flex;flex-direction:column}
+header{
+ height:50px;min-height:50px;display:flex;align-items:center;justify-content:space-between;
+ padding:0 15px;background:#101010;border-bottom:1px solid #303030
+}
+.title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+button{
+ border:1px solid #444;background:#292929;color:white;border-radius:6px;
+ width:38px;height:36px;font-size:22px;cursor:pointer
+}
+#stage{
+ flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+ position:relative;overflow:hidden;
+ background:radial-gradient(ellipse at center,#303030 0,#222 48%,#141414 100%)
+}
+#book{visibility:hidden;transition:transform .25s ease}
+.page{background:#fff;overflow:hidden}
+.page img{display:block;width:100%;height:100%;object-fit:fill;pointer-events:none}
+#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ddd}
+footer{
+ height:52px;min-height:52px;display:flex;align-items:center;justify-content:center;
+ gap:15px;background:#101010;border-top:1px solid #303030
+}
+#counter{min-width:150px;text-align:center;font-size:13px}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+ <div class="title">Detection of Traffic Violations and Congestion Using Deep Learning</div>
+ <button id="full" title="Fullscreen">⛶</button>
+</header>
+
+<div id="stage">
+ <div id="loading">Preparing catalogue…</div>
+ <div id="book"></div>
+</div>
+
+<footer>
+ <button id="prev">‹</button>
+ <span id="counter">Cover</span>
+ <button id="next">›</button>
+</footer>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+ "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const book = document.getElementById("book");
+const loading = document.getElementById("loading");
+const counter = document.getElementById("counter");
+const stage = document.getElementById("stage");
+
+let pdfDoc, flip, total = 0;
+
+async function build(){
+  pdfDoc = await pdfjsLib.getDocument("catalogue.pdf").promise;
+  total = pdfDoc.numPages;
+
+  const first = await pdfDoc.getPage(1);
+  const base = first.getViewport({scale:1});
+  const ratio = base.width/base.height;
+
+  // Render pages to static images so the flip engine can bend the WHOLE sheet cleanly.
+  const images = [];
+  for(let n=1;n<=total;n++){
+    const p = await pdfDoc.getPage(n);
+    const vp = p.getViewport({scale:2.0});
+    const c = document.createElement("canvas");
+    c.width = Math.round(vp.width);
+    c.height = Math.round(vp.height);
+    await p.render({canvasContext:c.getContext("2d"), viewport:vp}).promise;
+    images.push(c.toDataURL("image/jpeg",0.96));
+  }
+
+  // IMPORTANT:
+  // showCover:true means:
+  // 1 alone (cover)
+  // then 2|3, 4|5, 6|7, 8|9, 10|11, 12|13
+  // Exactly the requested book analysis. No artificial blank page is inserted.
+
+  const maxH = stage.clientHeight * 0.91;
+  const maxSpreadW = stage.clientWidth * 0.92;
+  const pageH = Math.floor(Math.min(maxH, maxSpreadW/(2*ratio)));
+  const pageW = Math.floor(pageH*ratio);
+
+  flip = new St.PageFlip(book,{
+    width:pageW,
+    height:pageH,
+    size:"fixed",
+    minWidth:pageW,
+    maxWidth:pageW,
+    minHeight:pageH,
+    maxHeight:pageH,
+    showCover:true,
+    usePortrait:false,
+    autoSize:true,
+    drawShadow:true,
+    maxShadowOpacity:0.58,
+    flippingTime:900,
+    useMouseEvents:true,
+    mobileScrollSupport:false,
+    swipeDistance:20,
+    showPageCorners:true,
+    disableFlipByClick:false
+  });
+
+  flip.loadFromImages(images);
+  flip.on("flip", e => updateCounter(e.data));
+  flip.on("init", e => updateCounter(e.data.page || 0));
+
+  book.style.visibility = "visible";
+  loading.style.display = "none";
+  updateCounter(0);
+}
+
+function updateCounter(index){
+  index = Number(index || 0);
+
+  if(index === 0){
+    // showCover places page 1 on the right side of a two-page canvas.
+    // Move the whole book left by half a page so page 1 itself is centered
+    // and no artificial blank page is visible.
+    const rect = book.getBoundingClientRect();
+    book.style.transform = `translateX(${-rect.width/4}px)`;
+    counter.textContent = `Page 1 / ${total}`;
+    return;
+  }
+
+  // From page 2 onward the book is a normal centered two-page spread.
+  book.style.transform = "translateX(0)";
+
+  // After the cover, spreads are 2|3, 4|5, etc.
+  let left = index + 1;
+  if(left % 2 !== 0) left -= 1;
+  const right = Math.min(left + 1, total);
+
+  if(left === right) counter.textContent = `Page ${left} / ${total}`;
+  else counter.textContent = `Pages ${left}–${right} / ${total}`;
+}
+
+document.getElementById("prev").onclick = () => flip && flip.flipPrev("bottom");
+document.getElementById("next").onclick = () => flip && flip.flipNext("bottom");
+
+document.addEventListener("keydown", e => {
+ if(e.key==="ArrowLeft" && flip) flip.flipPrev("bottom");
+ if(e.key==="ArrowRight" && flip) flip.flipNext("bottom");
+});
+
+document.getElementById("full").onclick = async () => {
+ if(!document.fullscreenElement) await document.documentElement.requestFullscreen();
+ else await document.exitFullscreen();
+};
+
+build().catch(err=>{
+ console.error(err);
+ loading.textContent="Could not load catalogue.pdf";
+});
+</script>
+</body>
+</html>
