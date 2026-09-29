@@ -66,6 +66,30 @@ body {
 /* =========================================================
    CLOSED BOOK
 ========================================================= */
+    @keyframes bookIntro {
+    0% {
+        transform: scale(.16) rotateZ(2deg) rotateY(-8deg);
+        opacity: 0;
+    }
+
+    35% {
+        opacity: 1;
+    }
+
+    75% {
+        transform: scale(1.04) rotateZ(-0.5deg) rotateY(0deg);
+    }
+
+    100% {
+        transform: scale(1) rotateZ(0deg) rotateY(0deg);
+        opacity: 1;
+    }
+}
+
+#closedBook.intro {
+    animation: bookIntro 1.25s cubic-bezier(.16,.8,.25,1) forwards;
+}
+    
 
 #closedBook {
     display: none;
@@ -1234,6 +1258,9 @@ async function renderSpread(
 ========================================================= */
 
 async function showFront() {
+    closedBook.classList.remove("intro");
+    void closedBook.offsetWidth;
+    closedBook.classList.add("intro");
 
     resetFlip();
 
