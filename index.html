@@ -1,14 +1,21 @@
 <!doctype html>
 <html lang="en">
+
 <head>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>Catalogue</title>
+<title>INTERSPORT Digital Catalogue</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
 * {
     box-sizing: border-box;
 }
@@ -19,13 +26,21 @@ body {
     width: 100%;
     height: 100%;
     overflow: hidden;
+
     background: #181818;
-    font-family: Arial, sans-serif;
+
+    font-family: Arial, Helvetica, sans-serif;
     color: #fff;
 }
 
+
+/* =========================================================
+   STAGE
+========================================================= */
+
 #stage {
     position: relative;
+
     width: 100%;
     height: calc(100vh - 58px);
 
@@ -34,6 +49,7 @@ body {
     justify-content: center;
 
     overflow: hidden;
+
     padding: 20px;
 
     background:
@@ -41,23 +57,167 @@ body {
             ellipse at center,
             #292929 0%,
             #1c1c1c 60%,
-            #151515 100%
+            #111 100%
         );
 }
 
-#loading {
-    position: absolute;
-    z-index: 1000;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    color: #ddd;
-}
 
 #viewer {
     position: relative;
+
     width: 100%;
     height: 100%;
+}
+
+
+/* =========================================================
+   INTERSPORT INTRO
+========================================================= */
+
+#loading {
+    position: absolute;
+    inset: 0;
+
+    z-index: 1000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        radial-gradient(
+            circle at center,
+            #292929 0%,
+            #191919 55%,
+            #101010 100%
+        );
+
+    transition:
+        opacity .6s ease,
+        visibility .6s ease;
+}
+
+
+#loading.hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+
+.introBrand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    animation:
+        introAppear
+        .8s
+        ease
+        forwards;
+}
+
+
+.introLogo {
+    font-size: 34px;
+    font-weight: 800;
+
+    letter-spacing: 1px;
+
+    color: #fff;
+}
+
+
+.introLine {
+    width: 44px;
+    height: 2px;
+
+    margin: 16px 0 20px;
+
+    background: #fff;
+
+    opacity: .85;
+}
+
+
+.introTitle {
+    font-size: 14px;
+    font-weight: 600;
+
+    letter-spacing: 4px;
+
+    color: #eee;
+
+    margin-bottom: 9px;
+}
+
+
+.introSubtitle {
+    font-size: 12px;
+
+    color: #888;
+
+    letter-spacing: .7px;
+
+    margin-bottom: 26px;
+}
+
+
+.loaderBar {
+    position: relative;
+
+    width: 190px;
+    height: 2px;
+
+    overflow: hidden;
+
+    background: #333;
+
+    border-radius: 10px;
+}
+
+
+.loaderProgress {
+    position: absolute;
+
+    width: 45%;
+    height: 100%;
+
+    left: -45%;
+
+    background: #fff;
+
+    animation:
+        loadingMove
+        1.2s
+        ease-in-out
+        infinite;
+}
+
+
+@keyframes loadingMove {
+
+    0% {
+        left: -45%;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
+
+
+@keyframes introAppear {
+
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 
@@ -67,9 +227,11 @@ body {
 
 #closedBook {
     display: none;
+
     position: absolute;
 
     background: #fff;
+
     overflow: hidden;
 
     box-shadow:
@@ -87,21 +249,26 @@ body {
     z-index: 20;
 }
 
+
 #closedCanvas {
     display: block;
+
     width: 100%;
     height: 100%;
 }
 
+
 #closedBook::before {
     content: "";
+
     position: absolute;
+
     z-index: 5;
 
     top: 0;
     left: 0;
 
-    width: 10px;
+    width: 9px;
     height: 100%;
 
     pointer-events: none;
@@ -115,15 +282,18 @@ body {
         );
 }
 
+
 #closedBook::after {
     content: "";
+
     position: absolute;
+
     z-index: 5;
 
     top: 0;
     right: 0;
 
-    width: 8px;
+    width: 7px;
     height: 100%;
 
     pointer-events: none;
@@ -131,7 +301,7 @@ body {
     background:
         linear-gradient(
             to left,
-            rgba(0,0,0,.15),
+            rgba(0,0,0,.14),
             transparent
         );
 }
@@ -152,6 +322,7 @@ body {
         0 18px 45px rgba(0,0,0,.52);
 
     perspective: 2500px;
+
     transform-style: preserve-3d;
 
     transform-origin: center center;
@@ -170,6 +341,7 @@ body {
 
 .page {
     position: absolute;
+
     top: 0;
 
     overflow: hidden;
@@ -177,27 +349,32 @@ body {
     background: #fff;
 }
 
+
 #leftPage {
     left: 0;
 }
+
 
 #rightPage {
     right: 0;
 }
 
+
 .page canvas {
     display: block;
+
     width: 100%;
     height: 100%;
 }
 
 
-/* LEFT INNER SHADOW */
+/* left page inner shadow */
 
 #leftPage::after {
     content: "";
 
     position: absolute;
+
     z-index: 10;
 
     top: 0;
@@ -218,12 +395,13 @@ body {
 }
 
 
-/* RIGHT INNER SHADOW */
+/* right page inner shadow */
 
 #rightPage::after {
     content: "";
 
     position: absolute;
+
     z-index: 10;
 
     top: 0;
@@ -245,15 +423,17 @@ body {
 
 
 /* =========================================================
-   CENTER SPINE
+   SPINE
 ========================================================= */
 
 #spine {
     position: absolute;
+
     z-index: 50;
 
     top: 0;
     bottom: 0;
+
     left: 50%;
 
     width: 16px;
@@ -294,6 +474,7 @@ body {
     will-change: transform;
 }
 
+
 .flipFace {
     position: absolute;
 
@@ -307,15 +488,19 @@ body {
     -webkit-backface-visibility: hidden;
 }
 
+
 .flipFace canvas {
     display: block;
+
     width: 100%;
     height: 100%;
 }
 
+
 #flipBack {
     transform: rotateY(180deg);
 }
+
 
 #flipShade {
     position: absolute;
@@ -353,6 +538,7 @@ body {
         forwards;
 }
 
+
 #flipSheet.flip-next #flipShade {
     animation:
         flipShade
@@ -378,6 +564,7 @@ body {
         forwards;
 }
 
+
 #flipSheet.flip-prev #flipShade {
     animation:
         flipShade
@@ -388,7 +575,7 @@ body {
 
 
 /* =========================================================
-   PAGE ANIMATIONS
+   PAGE FLIP ANIMATIONS
 ========================================================= */
 
 @keyframes flipNext {
@@ -418,6 +605,7 @@ body {
     }
 }
 
+
 @keyframes flipPrev {
 
     0% {
@@ -445,6 +633,7 @@ body {
     }
 }
 
+
 @keyframes flipShade {
 
     0% {
@@ -470,6 +659,137 @@ body {
 
 
 /* =========================================================
+   THANK YOU SCREEN
+========================================================= */
+
+#thankYouScreen {
+    display: none;
+
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 300;
+
+    align-items: center;
+    justify-content: center;
+
+    opacity: 0;
+
+    background:
+        radial-gradient(
+            circle at center,
+            #292929 0%,
+            #191919 55%,
+            #101010 100%
+        );
+
+    transition:
+        opacity .55s ease;
+}
+
+
+#thankYouScreen.show {
+    opacity: 1;
+}
+
+
+.thankYouContent {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    text-align: center;
+}
+
+
+.thankYouLogo {
+    font-size: 34px;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+
+    color: #fff;
+}
+
+
+.thankYouLine {
+    width: 44px;
+    height: 2px;
+
+    margin: 16px 0 25px;
+
+    background: #fff;
+
+    opacity: .85;
+}
+
+
+.thankYouTitle {
+    font-size: 20px;
+
+    font-weight: 600;
+
+    letter-spacing: 5px;
+
+    color: #fff;
+
+    margin-bottom: 12px;
+}
+
+
+.thankYouText {
+    font-size: 13px;
+
+    color: #999;
+
+    margin-bottom: 30px;
+}
+
+
+#restartCatalogue {
+    width: auto;
+
+    height: 40px;
+
+    padding: 0 24px;
+
+    border: 1px solid #666;
+
+    border-radius: 5px;
+
+    background: transparent;
+
+    color: #fff;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    letter-spacing: 1.5px;
+
+    cursor: pointer;
+
+    transition:
+        background .2s ease,
+        color .2s ease,
+        border-color .2s ease;
+}
+
+
+#restartCatalogue:hover {
+    background: #fff;
+
+    color: #111;
+
+    border-color: #fff;
+}
+
+
+/* =========================================================
    FOOTER
 ========================================================= */
 
@@ -477,15 +797,17 @@ footer {
     height: 58px;
 
     display: flex;
+
     align-items: center;
     justify-content: center;
 
-    gap: 28px;
+    gap: 26px;
 
     background: #101010;
 
     border-top: 1px solid #333;
 }
+
 
 button {
     width: 48px;
@@ -504,19 +826,32 @@ button {
     cursor: pointer;
 }
 
+
 button:hover:not(:disabled) {
     background: #3b3b3b;
 }
 
+
 button:disabled {
     opacity: .25;
+
     cursor: default;
 }
 
-#counter {
+
+/* =========================================================
+   PAGE SELECTOR
+========================================================= */
+
+#pageControl {
     min-width: 230px;
 
-    text-align: center;
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
 
     color: #ddd;
 
@@ -524,39 +859,164 @@ button:disabled {
 }
 
 
+#pageLabel {
+    color: #999;
+}
+
+
+#pageInput {
+    width: 58px;
+    height: 34px;
+
+    padding: 0 6px;
+
+    text-align: center;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    color: #fff;
+
+    background: #202020;
+
+    border: 1px solid #555;
+
+    border-radius: 6px;
+
+    outline: none;
+
+    transition:
+        border-color .2s ease,
+        background .2s ease;
+}
+
+
+#pageInput:hover {
+    border-color: #777;
+}
+
+
+#pageInput:focus {
+    border-color: #aaa;
+
+    background: #292929;
+}
+
+
+#pageTotal {
+    min-width: 38px;
+
+    text-align: left;
+}
+
+
+#pageInput::-webkit-inner-spin-button,
+#pageInput::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+
+    margin: 0;
+}
+
+
+#pageInput {
+    -moz-appearance: textfield;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
 @media (max-width: 700px) {
 
     #stage {
         padding: 8px;
     }
 
+
     footer {
-        gap: 12px;
+        gap: 10px;
     }
 
-    #counter {
-        min-width: 150px;
+
+    #pageControl {
+        min-width: 145px;
     }
+
+
+    #pageLabel {
+        display: none;
+    }
+
+
+    .introLogo,
+    .thankYouLogo {
+        font-size: 28px;
+    }
+
 }
+
 </style>
+
 </head>
 
 
 <body>
 
+
+<!-- =======================================================
+     MAIN STAGE
+======================================================== -->
+
 <div id="stage">
 
+
+    <!-- ===================================================
+         INTERSPORT INTRO
+    ==================================================== -->
+
     <div id="loading">
-        Loading catalogue...
+
+        <div class="introBrand">
+
+            <div class="introLogo">
+                INTERSPORT
+            </div>
+
+            <div class="introLine"></div>
+
+            <div class="introTitle">
+                DIGITAL CATALOGUE
+            </div>
+
+            <div class="introSubtitle">
+                Explore our latest collection
+            </div>
+
+            <div class="loaderBar">
+
+                <div class="loaderProgress"></div>
+
+            </div>
+
+        </div>
+
     </div>
+
+
+    <!-- ===================================================
+         VIEWER
+    ==================================================== -->
 
     <div id="viewer">
 
 
-        <!-- SINGLE CLOSED FRONT / BACK COVER -->
+        <!-- CLOSED FRONT / BACK COVER -->
 
         <div id="closedBook">
+
             <canvas id="closedCanvas"></canvas>
+
         </div>
 
 
@@ -564,73 +1024,160 @@ button:disabled {
 
         <div id="openBook">
 
+
+            <!-- LEFT PAGE -->
+
             <div
                 id="leftPage"
                 class="page"
             >
+
                 <canvas id="leftCanvas"></canvas>
+
             </div>
+
+
+            <!-- RIGHT PAGE -->
 
             <div
                 id="rightPage"
                 class="page"
             >
+
                 <canvas id="rightCanvas"></canvas>
+
             </div>
 
 
-            <!-- PAGE THAT ACTUALLY TURNS -->
+            <!-- MOVING PAGE -->
 
             <div id="flipSheet">
+
 
                 <div
                     id="flipFront"
                     class="flipFace"
                 >
+
                     <canvas id="flipFrontCanvas"></canvas>
+
                 </div>
+
 
                 <div
                     id="flipBack"
                     class="flipFace"
                 >
+
                     <canvas id="flipBackCanvas"></canvas>
+
                 </div>
+
 
                 <div id="flipShade"></div>
 
+
             </div>
+
 
             <div id="spine"></div>
 
+
         </div>
+
+
+        <!-- =================================================
+             THANK YOU
+        ================================================== -->
+
+        <div id="thankYouScreen">
+
+            <div class="thankYouContent">
+
+
+                <div class="thankYouLogo">
+                    INTERSPORT
+                </div>
+
+
+                <div class="thankYouLine"></div>
+
+
+                <div class="thankYouTitle">
+                    THANK YOU
+                </div>
+
+
+                <div class="thankYouText">
+                    Thank you for exploring our catalogue.
+                </div>
+
+
+                <button
+                    id="restartCatalogue"
+                    type="button"
+                >
+                    VIEW AGAIN
+                </button>
+
+
+            </div>
+
+        </div>
+
 
     </div>
 
 </div>
 
 
+<!-- =======================================================
+     FOOTER
+======================================================== -->
+
 <footer>
+
 
     <button
         id="prev"
         type="button"
-        aria-label="Previous"
+        aria-label="Previous page"
     >
         ‹
     </button>
 
-    <div id="counter">
-        Loading...
+
+    <div id="pageControl">
+
+        <span id="pageLabel">
+            Page
+        </span>
+
+
+        <input
+            id="pageInput"
+            type="number"
+            min="1"
+            value="1"
+            aria-label="Go to page"
+        >
+
+
+        <span id="pageTotal">
+            / 0
+        </span>
+
     </div>
+
 
     <button
         id="next"
         type="button"
-        aria-label="Next"
+        aria-label="Next page"
     >
         ›
     </button>
+
 
 </footer>
 
@@ -642,21 +1189,32 @@ button:disabled {
 ========================================================= */
 
 /*
-   Keep your PDF in the same folder as index.html.
+   PDF must be in the same folder.
 
-   When you replace the PDF but keep the same filename,
-   change v=2 to v=3, v=4 etc. to avoid browser cache.
+   If you replace catalogue.pdf but keep the same name,
+   change v=2 to v=3, v=4, etc.
 */
 
-const PDF_FILE = "catalogue.pdf?v=2";
+const PDF_FILE =
+    "catalogue.pdf?v=2";
 
 
-/* Internal page turn */
-const TURN_TIME = 400;
+/* Interior page flip */
+
+const TURN_TIME =
+    400;
 
 
-/* Front/back cover opening */
-const COVER_TIME = 520;
+/* Cover/open/close transition */
+
+const COVER_TIME =
+    520;
+
+
+/* Thank-you delay after back cover */
+
+const END_DELAY =
+    800;
 
 
 /* =========================================================
@@ -674,71 +1232,124 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 const stage =
     document.getElementById("stage");
 
+
 const viewer =
     document.getElementById("viewer");
+
 
 const loading =
     document.getElementById("loading");
 
+
 const closedBook =
     document.getElementById("closedBook");
+
 
 const closedCanvas =
     document.getElementById("closedCanvas");
 
+
 const openBook =
     document.getElementById("openBook");
+
 
 const leftPage =
     document.getElementById("leftPage");
 
+
 const rightPage =
     document.getElementById("rightPage");
+
 
 const leftCanvas =
     document.getElementById("leftCanvas");
 
+
 const rightCanvas =
     document.getElementById("rightCanvas");
+
 
 const flipSheet =
     document.getElementById("flipSheet");
 
+
 const flipFrontCanvas =
     document.getElementById("flipFrontCanvas");
+
 
 const flipBackCanvas =
     document.getElementById("flipBackCanvas");
 
+
 const prevButton =
     document.getElementById("prev");
+
 
 const nextButton =
     document.getElementById("next");
 
-const counter =
-    document.getElementById("counter");
+
+const pageInput =
+    document.getElementById("pageInput");
+
+
+const pageTotal =
+    document.getElementById("pageTotal");
+
+
+const pageLabel =
+    document.getElementById("pageLabel");
+
+
+const thankYouScreen =
+    document.getElementById("thankYouScreen");
+
+
+const restartCatalogue =
+    document.getElementById("restartCatalogue");
 
 
 /* =========================================================
    STATE
 ========================================================= */
 
-let pdf = null;
+let pdf =
+    null;
 
-let totalPages = 0;
 
-let pageRatio = 1;
+let totalPages =
+    0;
 
-let displayWidth = 0;
 
-let displayHeight = 0;
+let pageRatio =
+    1;
 
-let leftPageNumber = 2;
 
-let mode = "front";
+let displayWidth =
+    0;
 
-let isAnimating = false;
+
+let displayHeight =
+    0;
+
+
+let leftPageNumber =
+    2;
+
+
+/*
+   front
+   open
+   back
+   thanks
+*/
+
+let mode =
+    "front";
+
+
+let isAnimating =
+    false;
 
 
 /* =========================================================
@@ -748,7 +1359,13 @@ let isAnimating = false;
 function wait(ms) {
 
     return new Promise(
-        resolve => setTimeout(resolve, ms)
+
+        resolve =>
+            setTimeout(
+                resolve,
+                ms
+            )
+
     );
 
 }
@@ -757,18 +1374,26 @@ function wait(ms) {
 function nextFrame() {
 
     return new Promise(
+
         resolve =>
+
             requestAnimationFrame(
+
                 () =>
-                    requestAnimationFrame(resolve)
+
+                    requestAnimationFrame(
+                        resolve
+                    )
+
             )
+
     );
 
 }
 
 
 /* =========================================================
-   GET PDF PAGE RATIO
+   PDF PAGE RATIO
 ========================================================= */
 
 async function getPdfRatio() {
@@ -776,10 +1401,14 @@ async function getPdfRatio() {
     const page =
         await pdf.getPage(1);
 
+
     const viewport =
         page.getViewport({
+
             scale: 1
+
         });
+
 
     pageRatio =
         viewport.width /
@@ -789,7 +1418,7 @@ async function getPdfRatio() {
 
 
 /* =========================================================
-   CALCULATE BOOK SIZE
+   SIZE
 ========================================================= */
 
 function calculateSize() {
@@ -797,14 +1426,10 @@ function calculateSize() {
     const availableWidth =
         stage.clientWidth - 70;
 
+
     const availableHeight =
         stage.clientHeight - 40;
 
-
-    /*
-       Calculate the maximum size of TWO pages
-       while keeping the original PDF aspect ratio.
-    */
 
     const heightFromWidth =
         availableWidth /
@@ -813,8 +1438,11 @@ function calculateSize() {
 
     displayHeight =
         Math.min(
+
             availableHeight,
+
             heightFromWidth
+
         );
 
 
@@ -824,16 +1452,22 @@ function calculateSize() {
 
 
     displayWidth =
-        Math.floor(displayWidth);
+        Math.floor(
+            displayWidth
+        );
+
 
     displayHeight =
-        Math.floor(displayHeight);
+        Math.floor(
+            displayHeight
+        );
 
 
     /* CLOSED BOOK */
 
     closedBook.style.width =
         displayWidth + "px";
+
 
     closedBook.style.height =
         displayHeight + "px";
@@ -844,26 +1478,36 @@ function calculateSize() {
     openBook.style.width =
         (displayWidth * 2) + "px";
 
+
     openBook.style.height =
         displayHeight + "px";
 
 
+    /* LEFT */
+
     leftPage.style.width =
         displayWidth + "px";
+
 
     leftPage.style.height =
         displayHeight + "px";
 
 
+    /* RIGHT */
+
     rightPage.style.width =
         displayWidth + "px";
+
 
     rightPage.style.height =
         displayHeight + "px";
 
 
+    /* MOVING PAGE */
+
     flipSheet.style.width =
         displayWidth + "px";
+
 
     flipSheet.style.height =
         displayHeight + "px";
@@ -883,22 +1527,28 @@ function positionBooks() {
     const centerX =
         viewer.clientWidth / 2;
 
+
     const centerY =
         viewer.clientHeight / 2;
 
 
-    /* SINGLE COVER */
+    /* CLOSED SINGLE PAGE */
 
     closedBook.style.left =
         Math.round(
+
             centerX -
             displayWidth / 2
+
         ) + "px";
+
 
     closedBook.style.top =
         Math.round(
+
             centerY -
             displayHeight / 2
+
         ) + "px";
 
 
@@ -906,14 +1556,19 @@ function positionBooks() {
 
     openBook.style.left =
         Math.round(
+
             centerX -
             displayWidth
+
         ) + "px";
+
 
     openBook.style.top =
         Math.round(
+
             centerY -
             displayHeight / 2
+
         ) + "px";
 
 }
@@ -929,59 +1584,78 @@ async function renderPage(
 ) {
 
     if (
+
         pageNumber < 1 ||
+
         pageNumber > totalPages
+
     ) {
 
-        clearCanvas(canvas);
+        clearCanvas(
+            canvas
+        );
+
 
         return;
+
     }
 
 
     const page =
-        await pdf.getPage(pageNumber);
+        await pdf.getPage(
+            pageNumber
+        );
 
 
     const dpr =
         Math.min(
+
             window.devicePixelRatio || 1,
+
             2
+
         );
 
 
     const baseViewport =
         page.getViewport({
+
             scale: 1
+
         });
 
 
-    /*
-       Scale according to PAGE WIDTH.
-
-       This prevents the zoom/cropping problem.
-    */
-
     const scale =
-        (displayWidth * dpr) /
+        (
+            displayWidth *
+            dpr
+        ) /
         baseViewport.width;
 
 
     const viewport =
         page.getViewport({
+
             scale: scale
+
         });
 
 
     canvas.width =
-        Math.round(viewport.width);
+        Math.round(
+            viewport.width
+        );
+
 
     canvas.height =
-        Math.round(viewport.height);
+        Math.round(
+            viewport.height
+        );
 
 
     canvas.style.width =
         displayWidth + "px";
+
 
     canvas.style.height =
         displayHeight + "px";
@@ -989,28 +1663,40 @@ async function renderPage(
 
     const ctx =
         canvas.getContext(
+
             "2d",
+
             {
                 alpha: false
             }
+
         );
 
 
     ctx.fillStyle =
         "#fff";
 
+
     ctx.fillRect(
+
         0,
+
         0,
+
         canvas.width,
+
         canvas.height
+
     );
 
 
     await page.render({
 
-        canvasContext: ctx,
-        viewport: viewport
+        canvasContext:
+            ctx,
+
+        viewport:
+            viewport
 
     }).promise;
 
@@ -1021,28 +1707,41 @@ async function renderPage(
    BLANK PAGE
 ========================================================= */
 
-function clearCanvas(canvas) {
+function clearCanvas(
+    canvas
+) {
 
     const dpr =
         Math.min(
+
             window.devicePixelRatio || 1,
+
             2
+
         );
 
 
     canvas.width =
         Math.round(
-            displayWidth * dpr
+
+            displayWidth *
+            dpr
+
         );
+
 
     canvas.height =
         Math.round(
-            displayHeight * dpr
+
+            displayHeight *
+            dpr
+
         );
 
 
     canvas.style.width =
         displayWidth + "px";
+
 
     canvas.style.height =
         displayHeight + "px";
@@ -1050,39 +1749,53 @@ function clearCanvas(canvas) {
 
     const ctx =
         canvas.getContext(
+
             "2d",
+
             {
                 alpha: false
             }
+
         );
 
 
     ctx.fillStyle =
         "#fff";
 
+
     ctx.fillRect(
+
         0,
+
         0,
+
         canvas.width,
+
         canvas.height
+
     );
 
 }
 
 
 /* =========================================================
-   RESET FLIP PAGE
+   RESET FLIP
 ========================================================= */
 
 function resetFlip() {
 
     flipSheet.classList.remove(
+
         "flip-next",
+
         "flip-prev"
+
     );
+
 
     flipSheet.style.display =
         "none";
+
 
     flipSheet.style.transform =
         "";
@@ -1091,19 +1804,29 @@ function resetFlip() {
 
 
 /* =========================================================
-   COUNTER
+   PAGE CONTROL
 ========================================================= */
 
-function updateCounter() {
+function updatePageControl() {
+
+    pageTotal.textContent =
+        `/ ${totalPages}`;
+
 
     if (
         mode === "front"
     ) {
 
-        counter.textContent =
-            `Front Cover · Page 1 / ${totalPages}`;
+        pageLabel.textContent =
+            "Page";
+
+
+        pageInput.value =
+            1;
+
 
         return;
+
     }
 
 
@@ -1111,34 +1834,48 @@ function updateCounter() {
         mode === "back"
     ) {
 
-        counter.textContent =
-            "Back Cover";
+        pageLabel.textContent =
+            "Back";
+
+
+        pageInput.value =
+            totalPages;
+
 
         return;
+
     }
 
 
     if (
-        leftPageNumber + 1 <= totalPages
+        mode === "thanks"
     ) {
 
-        counter.textContent =
-            `Pages ${leftPageNumber}–${leftPageNumber + 1} / ${totalPages}`;
+        pageLabel.textContent =
+            "Page";
+
+
+        pageInput.value =
+            totalPages;
+
+
+        return;
 
     }
 
-    else {
 
-        counter.textContent =
-            `Page ${leftPageNumber} / ${totalPages}`;
+    pageLabel.textContent =
+        "Page";
 
-    }
+
+    pageInput.value =
+        leftPageNumber;
 
 }
 
 
 /* =========================================================
-   FIND LAST SPREAD
+   LAST SPREAD
 ========================================================= */
 
 function getLastLeftPage() {
@@ -1173,15 +1910,18 @@ function getLastLeftPage() {
 
 
     return Math.max(
+
         2,
+
         result
+
     );
 
 }
 
 
 /* =========================================================
-   RENDER OPEN SPREAD
+   RENDER SPREAD
 ========================================================= */
 
 async function renderSpread(
@@ -1190,8 +1930,11 @@ async function renderSpread(
 
     requestedLeft =
         Math.max(
+
             2,
+
             requestedLeft
+
         );
 
 
@@ -1210,26 +1953,35 @@ async function renderSpread(
 
     await Promise.all([
 
-        renderPage(
-            leftPageNumber,
-            leftCanvas
-        ),
 
         renderPage(
+
+            leftPageNumber,
+
+            leftCanvas
+
+        ),
+
+
+        renderPage(
+
             leftPageNumber + 1,
+
             rightCanvas
+
         )
+
 
     ]);
 
 
-    updateCounter();
+    updatePageControl();
 
 }
 
 
 /* =========================================================
-   SHOW FRONT COVER
+   FRONT COVER
 ========================================================= */
 
 async function showFront() {
@@ -1239,6 +1991,15 @@ async function showFront() {
 
     mode =
         "front";
+
+
+    thankYouScreen.classList.remove(
+        "show"
+    );
+
+
+    thankYouScreen.style.display =
+        "none";
 
 
     openBook.style.display =
@@ -1252,8 +2013,10 @@ async function showFront() {
     closedBook.style.transition =
         "none";
 
+
     closedBook.style.opacity =
         "1";
+
 
     closedBook.style.transform =
         "translateX(0) scale(1)";
@@ -1262,24 +2025,30 @@ async function showFront() {
     openBook.style.transition =
         "none";
 
+
     openBook.style.opacity =
         "1";
+
 
     openBook.style.transform =
         "translateX(0) scale(1)";
 
 
     await renderPage(
+
         1,
+
         closedCanvas
+
     );
 
 
-    updateCounter();
+    updatePageControl();
 
 
     prevButton.disabled =
         true;
+
 
     nextButton.disabled =
         false;
@@ -1292,7 +2061,7 @@ async function showFront() {
 
 
 /* =========================================================
-   SHOW NORMAL SPREAD
+   NORMAL SPREAD
 ========================================================= */
 
 async function showSpread(
@@ -1306,6 +2075,10 @@ async function showSpread(
         "open";
 
 
+    thankYouScreen.style.display =
+        "none";
+
+
     closedBook.style.display =
         "none";
 
@@ -1317,18 +2090,23 @@ async function showSpread(
     openBook.style.transition =
         "none";
 
+
     openBook.style.opacity =
         "1";
+
 
     openBook.style.transform =
         "translateX(0) scale(1)";
 
 
-    await renderSpread(page);
+    await renderSpread(
+        page
+    );
 
 
     prevButton.disabled =
         false;
+
 
     nextButton.disabled =
         false;
@@ -1341,10 +2119,10 @@ async function showSpread(
 
 
 /* =========================================================
-   SHOW BACK COVER
+   BACK COVER
 ========================================================= */
 
-function showBack() {
+async function showBack() {
 
     resetFlip();
 
@@ -1361,26 +2139,38 @@ function showBack() {
         "block";
 
 
-    clearCanvas(
+    /*
+       The final PDF page is used
+       as the closed back cover.
+    */
+
+    await renderPage(
+
+        totalPages,
+
         closedCanvas
+
     );
 
 
     closedBook.style.transition =
         "none";
 
+
     closedBook.style.opacity =
         "1";
+
 
     closedBook.style.transform =
         "translateX(0) scale(1)";
 
 
-    updateCounter();
+    updatePageControl();
 
 
     prevButton.disabled =
         false;
+
 
     nextButton.disabled =
         true;
@@ -1393,13 +2183,17 @@ function showBack() {
 
 
 /* =========================================================
-   FRONT COVER -> OPEN BOOK
+   FRONT -> OPEN
 ========================================================= */
 
 async function openFromFront() {
 
-    if (isAnimating) {
+    if (
+        isAnimating
+    ) {
+
         return;
+
     }
 
 
@@ -1410,15 +2204,14 @@ async function openFromFront() {
     prevButton.disabled =
         true;
 
+
     nextButton.disabled =
         true;
 
 
-    /*
-       Prepare pages 2 and 3 before animation.
-    */
-
-    await renderSpread(2);
+    await renderSpread(
+        2
+    );
 
 
     openBook.style.display =
@@ -1428,8 +2221,10 @@ async function openFromFront() {
     openBook.style.transition =
         "none";
 
+
     openBook.style.opacity =
         "0";
+
 
     openBook.style.transform =
         "translateX(24px) scale(.965)";
@@ -1438,6 +2233,7 @@ async function openFromFront() {
     closedBook.style.display =
         "block";
 
+
     closedBook.style.zIndex =
         "30";
 
@@ -1445,8 +2241,10 @@ async function openFromFront() {
     closedBook.style.transition =
         "none";
 
+
     closedBook.style.opacity =
         "1";
+
 
     closedBook.style.transform =
         "translateX(0) scale(1)";
@@ -1454,13 +2252,6 @@ async function openFromFront() {
 
     await nextFrame();
 
-
-    /*
-       Smooth opening.
-
-       No 180 degree cover rotation.
-       This avoids the giant triangle / white page bug.
-    */
 
     closedBook.style.transition =
         `
@@ -1479,12 +2270,14 @@ async function openFromFront() {
     closedBook.style.transform =
         `translateX(${-displayWidth * .47}px) scale(.985)`;
 
+
     closedBook.style.opacity =
         "0";
 
 
     openBook.style.transform =
         "translateX(0) scale(1)";
+
 
     openBook.style.opacity =
         "1";
@@ -1498,12 +2291,14 @@ async function openFromFront() {
     closedBook.style.display =
         "none";
 
+
     closedBook.style.zIndex =
         "20";
 
 
     closedBook.style.transition =
         "";
+
 
     openBook.style.transition =
         "";
@@ -1512,6 +2307,7 @@ async function openFromFront() {
     closedBook.style.opacity =
         "1";
 
+
     closedBook.style.transform =
         "translateX(0) scale(1)";
 
@@ -1519,15 +2315,17 @@ async function openFromFront() {
     mode =
         "open";
 
+
     leftPageNumber =
         2;
 
 
-    updateCounter();
+    updatePageControl();
 
 
     prevButton.disabled =
         false;
+
 
     nextButton.disabled =
         false;
@@ -1540,13 +2338,17 @@ async function openFromFront() {
 
 
 /* =========================================================
-   FIRST SPREAD -> FRONT COVER
+   FIRST SPREAD -> FRONT
 ========================================================= */
 
 async function closeToFront() {
 
-    if (isAnimating) {
+    if (
+        isAnimating
+    ) {
+
         return;
+
     }
 
 
@@ -1557,18 +2359,23 @@ async function closeToFront() {
     prevButton.disabled =
         true;
 
+
     nextButton.disabled =
         true;
 
 
     await renderPage(
+
         1,
+
         closedCanvas
+
     );
 
 
     closedBook.style.display =
         "block";
+
 
     closedBook.style.zIndex =
         "30";
@@ -1577,8 +2384,10 @@ async function closeToFront() {
     closedBook.style.transition =
         "none";
 
+
     closedBook.style.opacity =
         "0";
+
 
     closedBook.style.transform =
         `translateX(${-displayWidth * .47}px) scale(.985)`;
@@ -1587,8 +2396,10 @@ async function closeToFront() {
     openBook.style.transition =
         "none";
 
+
     openBook.style.opacity =
         "1";
+
 
     openBook.style.transform =
         "translateX(0) scale(1)";
@@ -1614,12 +2425,14 @@ async function closeToFront() {
     openBook.style.transform =
         "translateX(24px) scale(.965)";
 
+
     openBook.style.opacity =
         "0";
 
 
     closedBook.style.transform =
         "translateX(0) scale(1)";
+
 
     closedBook.style.opacity =
         "1";
@@ -1637,12 +2450,14 @@ async function closeToFront() {
     openBook.style.transition =
         "";
 
+
     closedBook.style.transition =
         "";
 
 
     openBook.style.opacity =
         "1";
+
 
     openBook.style.transform =
         "translateX(0) scale(1)";
@@ -1656,11 +2471,12 @@ async function closeToFront() {
         "front";
 
 
-    updateCounter();
+    updatePageControl();
 
 
     prevButton.disabled =
         true;
+
 
     nextButton.disabled =
         false;
@@ -1678,8 +2494,12 @@ async function closeToFront() {
 
 async function closeToBack() {
 
-    if (isAnimating) {
+    if (
+        isAnimating
+    ) {
+
         return;
+
     }
 
 
@@ -1690,23 +2510,28 @@ async function closeToBack() {
     prevButton.disabled =
         true;
 
+
     nextButton.disabled =
         true;
 
 
     /*
-       Blank white back cover.
-       If your PDF contains an actual back-cover page,
-       see the note below.
+       Actual last PDF page becomes
+       the closed back cover.
     */
 
-    clearCanvas(
+    await renderPage(
+
+        totalPages,
+
         closedCanvas
+
     );
 
 
     closedBook.style.display =
         "block";
+
 
     closedBook.style.zIndex =
         "30";
@@ -1715,8 +2540,10 @@ async function closeToBack() {
     closedBook.style.transition =
         "none";
 
+
     closedBook.style.opacity =
         "0";
+
 
     closedBook.style.transform =
         `translateX(${displayWidth * .47}px) scale(.985)`;
@@ -1725,8 +2552,10 @@ async function closeToBack() {
     openBook.style.transition =
         "none";
 
+
     openBook.style.opacity =
         "1";
+
 
     openBook.style.transform =
         "translateX(0) scale(1)";
@@ -1752,12 +2581,14 @@ async function closeToBack() {
     openBook.style.transform =
         "translateX(-24px) scale(.965)";
 
+
     openBook.style.opacity =
         "0";
 
 
     closedBook.style.transform =
         "translateX(0) scale(1)";
+
 
     closedBook.style.opacity =
         "1";
@@ -1775,12 +2606,14 @@ async function closeToBack() {
     openBook.style.transition =
         "";
 
+
     closedBook.style.transition =
         "";
 
 
     openBook.style.opacity =
         "1";
+
 
     openBook.style.transform =
         "translateX(0) scale(1)";
@@ -1794,18 +2627,28 @@ async function closeToBack() {
         "back";
 
 
-    updateCounter();
+    updatePageControl();
 
 
     prevButton.disabled =
         false;
 
+
     nextButton.disabled =
         true;
 
 
-    isAnimating =
-        false;
+    /*
+       Let the customer see the back cover
+       briefly before the thank-you screen.
+    */
+
+    await wait(
+        END_DELAY
+    );
+
+
+    await showThankYou();
 
 }
 
@@ -1816,8 +2659,12 @@ async function closeToBack() {
 
 async function openFromBack() {
 
-    if (isAnimating) {
+    if (
+        isAnimating
+    ) {
+
         return;
+
     }
 
 
@@ -1827,6 +2674,7 @@ async function openFromBack() {
 
     prevButton.disabled =
         true;
+
 
     nextButton.disabled =
         true;
@@ -1848,8 +2696,10 @@ async function openFromBack() {
     openBook.style.transition =
         "none";
 
+
     openBook.style.opacity =
         "0";
+
 
     openBook.style.transform =
         "translateX(-24px) scale(.965)";
@@ -1858,6 +2708,7 @@ async function openFromBack() {
     closedBook.style.display =
         "block";
 
+
     closedBook.style.zIndex =
         "30";
 
@@ -1865,8 +2716,10 @@ async function openFromBack() {
     closedBook.style.transition =
         "none";
 
+
     closedBook.style.opacity =
         "1";
+
 
     closedBook.style.transform =
         "translateX(0) scale(1)";
@@ -1892,12 +2745,14 @@ async function openFromBack() {
     closedBook.style.transform =
         `translateX(${displayWidth * .47}px) scale(.985)`;
 
+
     closedBook.style.opacity =
         "0";
 
 
     openBook.style.transform =
         "translateX(0) scale(1)";
+
 
     openBook.style.opacity =
         "1";
@@ -1911,12 +2766,14 @@ async function openFromBack() {
     closedBook.style.display =
         "none";
 
+
     closedBook.style.zIndex =
         "20";
 
 
     openBook.style.transition =
         "";
+
 
     closedBook.style.transition =
         "";
@@ -1925,6 +2782,7 @@ async function openFromBack() {
     closedBook.style.opacity =
         "1";
 
+
     closedBook.style.transform =
         "translateX(0) scale(1)";
 
@@ -1932,15 +2790,17 @@ async function openFromBack() {
     mode =
         "open";
 
+
     leftPageNumber =
         lastLeft;
 
 
-    updateCounter();
+    updatePageControl();
 
 
     prevButton.disabled =
         false;
+
 
     nextButton.disabled =
         false;
@@ -1953,19 +2813,127 @@ async function openFromBack() {
 
 
 /* =========================================================
-   NEXT PAGE
+   THANK YOU
+========================================================= */
+
+async function showThankYou() {
+
+    isAnimating =
+        true;
+
+
+    mode =
+        "thanks";
+
+
+    thankYouScreen.style.display =
+        "flex";
+
+
+    await nextFrame();
+
+
+    thankYouScreen.classList.add(
+        "show"
+    );
+
+
+    prevButton.disabled =
+        true;
+
+
+    nextButton.disabled =
+        true;
+
+
+    pageInput.disabled =
+        true;
+
+
+    await wait(
+        550
+    );
+
+
+    isAnimating =
+        false;
+
+}
+
+
+/* =========================================================
+   HIDE THANK YOU
+========================================================= */
+
+async function hideThankYou() {
+
+    thankYouScreen.classList.remove(
+        "show"
+    );
+
+
+    await wait(
+        550
+    );
+
+
+    thankYouScreen.style.display =
+        "none";
+
+
+    pageInput.disabled =
+        false;
+
+}
+
+
+/* =========================================================
+   RESTART
+========================================================= */
+
+restartCatalogue.addEventListener(
+
+    "click",
+
+    async () => {
+
+        if (
+            isAnimating
+        ) {
+
+            return;
+
+        }
+
+
+        isAnimating =
+            true;
+
+
+        await hideThankYou();
+
+
+        await showFront();
+
+    }
+
+);
+
+
+/* =========================================================
+   NEXT
 ========================================================= */
 
 async function goNext() {
 
-    if (isAnimating) {
+    if (
+        isAnimating
+    ) {
+
         return;
+
     }
 
-
-    /*
-       FRONT COVER -> FIRST SPREAD
-    */
 
     if (
         mode === "front"
@@ -1974,36 +2942,38 @@ async function goNext() {
         await openFromFront();
 
         return;
+
     }
 
 
-    /*
-       Already at back cover
-    */
-
     if (
-        mode === "back"
+        mode === "back" ||
+        mode === "thanks"
     ) {
 
         return;
+
     }
 
 
     const currentLeft =
         leftPageNumber;
 
+
     const currentRight =
         currentLeft + 1;
 
+
     const nextLeft =
         currentLeft + 2;
+
 
     const nextRight =
         currentLeft + 3;
 
 
     /*
-       END OF PDF -> BACK COVER
+       End of catalogue
     */
 
     if (
@@ -2013,12 +2983,9 @@ async function goNext() {
         await closeToBack();
 
         return;
+
     }
 
-
-    /*
-       NORMAL PAGE TURN
-    */
 
     isAnimating =
         true;
@@ -2027,39 +2994,49 @@ async function goNext() {
     prevButton.disabled =
         true;
 
+
     nextButton.disabled =
         true;
 
 
     /*
-       Front of moving sheet =
-       current RIGHT page.
+       Moving page front:
+       current right page.
     */
 
     await renderPage(
+
         currentRight,
+
         flipFrontCanvas
+
     );
 
 
     /*
-       Back of moving sheet =
-       next LEFT page.
+       Moving page back:
+       next left page.
     */
 
     await renderPage(
+
         nextLeft,
+
         flipBackCanvas
+
     );
 
 
     /*
-       Prepare new right page underneath.
+       New right page underneath.
     */
 
     await renderPage(
+
         nextRight,
+
         rightCanvas
+
     );
 
 
@@ -2072,10 +3049,6 @@ async function goNext() {
     );
 
 
-    /*
-       Force animation restart.
-    */
-
     void flipSheet.offsetWidth;
 
 
@@ -2085,8 +3058,8 @@ async function goNext() {
 
 
     /*
-       At approximately the middle of the turn,
-       replace the left static page.
+       Change underlying left page
+       slightly before halfway.
     */
 
     setTimeout(
@@ -2094,8 +3067,11 @@ async function goNext() {
         () => {
 
             renderPage(
+
                 nextLeft,
+
                 leftCanvas
+
             );
 
         },
@@ -2117,11 +3093,12 @@ async function goNext() {
     resetFlip();
 
 
-    updateCounter();
+    updatePageControl();
 
 
     prevButton.disabled =
         false;
+
 
     nextButton.disabled =
         false;
@@ -2134,31 +3111,29 @@ async function goNext() {
 
 
 /* =========================================================
-   PREVIOUS PAGE
+   PREVIOUS
 ========================================================= */
 
 async function goPrevious() {
 
-    if (isAnimating) {
-        return;
-    }
-
-
-    /*
-       Already at front cover.
-    */
-
     if (
-        mode === "front"
+        isAnimating
     ) {
 
         return;
+
     }
 
 
-    /*
-       BACK COVER -> LAST SPREAD
-    */
+    if (
+        mode === "front" ||
+        mode === "thanks"
+    ) {
+
+        return;
+
+    }
+
 
     if (
         mode === "back"
@@ -2167,12 +3142,9 @@ async function goPrevious() {
         await openFromBack();
 
         return;
+
     }
 
-
-    /*
-       FIRST SPREAD -> FRONT COVER
-    */
 
     if (
         leftPageNumber <= 2
@@ -2181,12 +3153,9 @@ async function goPrevious() {
         await closeToFront();
 
         return;
+
     }
 
-
-    /*
-       NORMAL BACKWARD TURN
-    */
 
     isAnimating =
         true;
@@ -2195,6 +3164,7 @@ async function goPrevious() {
     prevButton.disabled =
         true;
 
+
     nextButton.disabled =
         true;
 
@@ -2202,41 +3172,39 @@ async function goPrevious() {
     const currentLeft =
         leftPageNumber;
 
+
     const previousLeft =
         currentLeft - 2;
+
 
     const previousRight =
         currentLeft - 1;
 
 
-    /*
-       Current left page becomes
-       the moving sheet.
-    */
-
     await renderPage(
+
         currentLeft,
+
         flipFrontCanvas
+
     );
 
 
-    /*
-       Back side of moving sheet.
-    */
-
     await renderPage(
+
         previousRight,
+
         flipBackCanvas
+
     );
 
 
-    /*
-       Prepare previous left page underneath.
-    */
-
     await renderPage(
+
         previousLeft,
+
         leftCanvas
+
     );
 
 
@@ -2257,17 +3225,16 @@ async function goPrevious() {
     );
 
 
-    /*
-       Swap right page around the midpoint.
-    */
-
     setTimeout(
 
         () => {
 
             renderPage(
+
                 previousRight,
+
                 rightCanvas
+
             );
 
         },
@@ -2289,11 +3256,12 @@ async function goPrevious() {
     resetFlip();
 
 
-    updateCounter();
+    updatePageControl();
 
 
     prevButton.disabled =
         false;
+
 
     nextButton.disabled =
         false;
@@ -2306,23 +3274,196 @@ async function goPrevious() {
 
 
 /* =========================================================
-   BUTTONS
+   GO DIRECTLY TO PAGE
 ========================================================= */
 
-prevButton.addEventListener(
-    "click",
-    goPrevious
+async function goToPage(
+    pageNumber
+) {
+
+    if (
+
+        isAnimating ||
+
+        !pdf ||
+
+        mode === "thanks"
+
+    ) {
+
+        return;
+
+    }
+
+
+    pageNumber =
+        parseInt(
+            pageNumber,
+            10
+        );
+
+
+    if (
+        isNaN(pageNumber)
+    ) {
+
+        updatePageControl();
+
+        return;
+
+    }
+
+
+    pageNumber =
+        Math.max(
+
+            1,
+
+            Math.min(
+
+                totalPages,
+
+                pageNumber
+
+            )
+
+        );
+
+
+    /*
+       PAGE 1 = FRONT COVER
+    */
+
+    if (
+        pageNumber === 1
+    ) {
+
+        await showFront();
+
+        return;
+
+    }
+
+
+    /*
+       Convert selected page to spread.
+
+       2 -> 2 / 3
+       3 -> 2 / 3
+       4 -> 4 / 5
+       5 -> 4 / 5
+    */
+
+    let spreadLeft =
+        pageNumber;
+
+
+    if (
+        spreadLeft % 2 !== 0
+    ) {
+
+        spreadLeft--;
+
+    }
+
+
+    mode =
+        "open";
+
+
+    closedBook.style.display =
+        "none";
+
+
+    openBook.style.display =
+        "block";
+
+
+    await renderSpread(
+        spreadLeft
+    );
+
+
+    prevButton.disabled =
+        false;
+
+
+    nextButton.disabled =
+        false;
+
+}
+
+
+/* =========================================================
+   PAGE INPUT
+========================================================= */
+
+pageInput.addEventListener(
+
+    "keydown",
+
+    async event => {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            event.preventDefault();
+
+
+            await goToPage(
+                pageInput.value
+            );
+
+
+            pageInput.blur();
+
+        }
+
+    }
+
 );
 
 
-nextButton.addEventListener(
-    "click",
-    goNext
+pageInput.addEventListener(
+
+    "change",
+
+    async () => {
+
+        await goToPage(
+            pageInput.value
+        );
+
+    }
+
 );
 
 
 /* =========================================================
-   CLICK CLOSED COVER
+   BUTTONS
+========================================================= */
+
+prevButton.addEventListener(
+
+    "click",
+
+    goPrevious
+
+);
+
+
+nextButton.addEventListener(
+
+    "click",
+
+    goNext
+
+);
+
+
+/* =========================================================
+   CLICK CLOSED BOOK
 ========================================================= */
 
 closedBook.addEventListener(
@@ -2361,6 +3502,20 @@ document.addEventListener(
     "keydown",
 
     event => {
+
+        /*
+           Don't change pages while user
+           is typing a page number.
+        */
+
+        if (
+            document.activeElement === pageInput
+        ) {
+
+            return;
+
+        }
+
 
         if (
             event.key === "ArrowRight"
@@ -2409,11 +3564,15 @@ window.addEventListener(
                 async () => {
 
                     if (
+
                         !pdf ||
+
                         isAnimating
+
                     ) {
 
                         return;
+
                     }
 
 
@@ -2432,11 +3591,13 @@ window.addEventListener(
                         mode === "back"
                     ) {
 
-                        showBack();
+                        await showBack();
 
                     }
 
-                    else {
+                    else if (
+                        mode === "open"
+                    ) {
 
                         await showSpread(
                             leftPageNumber
@@ -2456,14 +3617,16 @@ window.addEventListener(
 
 
 /* =========================================================
-   LOAD PDF
+   START
 ========================================================= */
 
 async function start() {
 
     try {
 
+
         pdf =
+
             await pdfjsLib
                 .getDocument(
                     PDF_FILE
@@ -2475,27 +3638,84 @@ async function start() {
             pdf.numPages;
 
 
+        pageInput.max =
+            totalPages;
+
+
+        pageTotal.textContent =
+            `/ ${totalPages}`;
+
+
         await getPdfRatio();
 
 
         calculateSize();
 
 
-        loading.style.display =
-            "none";
-
+        /*
+           Render the front cover BEFORE
+           removing the intro.
+        */
 
         await showFront();
+
+
+        /*
+           Small pause so the intro feels intentional.
+        */
+
+        await wait(
+            350
+        );
+
+
+        loading.classList.add(
+            "hide"
+        );
+
+
+        setTimeout(
+
+            () => {
+
+                loading.style.display =
+                    "none";
+
+            },
+
+            600
+
+        );
+
 
     }
 
     catch(error) {
 
-        console.error(error);
+
+        console.error(
+            error
+        );
 
 
-        loading.textContent =
-            "Could not load catalogue.pdf";
+        loading.innerHTML =
+            `
+            <div style="
+                text-align:center;
+                color:#ddd;
+                font-size:13px;
+                line-height:1.7;
+            ">
+                <strong style="
+                    font-size:18px;
+                    color:#fff;
+                ">
+                    INTERSPORT
+                </strong>
+                <br>
+                Could not load catalogue.pdf
+            </div>
+            `;
 
     }
 
