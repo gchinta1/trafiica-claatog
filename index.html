@@ -3,14 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
 <title>Catalogue</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
 
 <style>
-
 * {
     box-sizing: border-box;
 }
@@ -26,105 +24,28 @@ body {
     color: #eee;
 }
 
-
 /* =========================================================
    STAGE
 ========================================================= */
 
 #stage {
-    width: 100%;
     height: calc(100% - 54px);
-
+    width: 100%;
     position: relative;
+    overflow: hidden;
 
     display: flex;
     align-items: center;
     justify-content: center;
-
-    overflow: hidden;
 
     background:
         radial-gradient(
             ellipse at center,
-            #303030 0%,
+            #303030 0,
             #222 50%,
             #151515 100%
         );
 }
-
-
-/* =========================================================
-   WRAPPER
-
-   IMPORTANT:
-   We move THIS wrapper when the book is closed.
-   We do NOT transform PageFlip itself.
-========================================================= */
-
-#book-positioner {
-    position: relative;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    transition: transform 0.35s ease;
-}
-
-
-/* =========================================================
-   PAGEFLIP
-========================================================= */
-
-#book {
-    visibility: hidden;
-}
-
-
-/* =========================================================
-   CLOSED BOOK POSITIONS
-========================================================= */
-
-/*
- * PageFlip's front cover occupies the RIGHT half
- * of its two-page area.
- *
- * Therefore move the whole PageFlip area LEFT
- * by half of one page.
- */
-
-#book-positioner.front-cover {
-    transform:
-        translateX(
-            calc(var(--page-width) / -2)
-        );
-}
-
-
-/*
- * Normal open book.
- */
-
-#book-positioner.open-book {
-    transform:
-        translateX(0);
-}
-
-
-/*
- * Back cover occupies the LEFT half.
- *
- * Therefore move the PageFlip area RIGHT
- * by half of one page.
- */
-
-#book-positioner.back-cover {
-    transform:
-        translateX(
-            calc(var(--page-width) / 2)
-        );
-}
-
 
 /* =========================================================
    LOADING
@@ -132,26 +53,142 @@ body {
 
 #loading {
     position: absolute;
+    inset: 0;
 
-    left: 50%;
-    top: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    transform: translate(-50%, -50%);
-
-    z-index: 100;
-
-    font-size: 14px;
-
-    color: #ddd;
+    z-index: 50;
 }
 
+/* =========================================================
+   TRUE CLOSED BOOK
+
+   This is NOT PageFlip.
+
+   It is physically only ONE PAGE wide.
+
+   Therefore:
+   - no blank left side
+   - no blank right side
+   - perfectly centered
+========================================================= */
+
+#closedView {
+    display: none;
+
+    position: relative;
+    overflow: hidden;
+
+    background: #fff;
+
+    box-shadow:
+        0 16px 45px rgba(0,0,0,.48),
+        0 0 0 1px rgba(0,0,0,.16);
+
+    cursor: pointer;
+
+    transform-origin: center center;
+}
+
+#closedView img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: fill;
+
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+/* small animation when book closes */
+
+#closedView.front {
+    animation: coverIn .28s ease both;
+}
+
+#closedView.back {
+    animation: coverIn .28s ease both;
+}
+
+@keyframes coverIn {
+
+    from {
+        opacity: .65;
+        transform: scale(.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* =========================================================
+   OPEN BOOK
+
+   PageFlip is used ONLY here.
+
+   It NEVER controls the front/back closed covers.
+========================================================= */
+
+#openView {
+    display: none;
+
+    position: relative;
+
+    filter:
+        drop-shadow(
+            0 16px 32px rgba(0,0,0,.40)
+        );
+}
+
+#book {
+    visibility: hidden;
+}
+
+/* =========================================================
+   CENTRE BOOK SHADOW / GUTTER
+========================================================= */
+
+#openView::after {
+    content: "";
+
+    pointer-events: none;
+
+    position: absolute;
+
+    z-index: 30;
+
+    top: 0;
+    bottom: 0;
+
+    left: 50%;
+
+    width: 28px;
+
+    transform:
+        translateX(-50%);
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(0,0,0,.16),
+            rgba(255,255,255,.12) 42%,
+            rgba(0,0,0,.14)
+        );
+
+    opacity: .55;
+}
 
 /* =========================================================
    FOOTER
 ========================================================= */
 
 footer {
-    width: 100%;
     height: 54px;
 
     background: #101010;
@@ -164,7 +201,6 @@ footer {
 
     gap: 18px;
 }
-
 
 /* =========================================================
    BUTTONS
@@ -183,30 +219,23 @@ button {
     font-size: 24px;
 
     cursor: pointer;
-
-    transition:
-        background .15s ease,
-        opacity .15s ease;
 }
-
 
 button:hover:not(:disabled) {
     background: #3a3a3a;
 }
-
 
 button:disabled {
     opacity: .25;
     cursor: default;
 }
 
-
 /* =========================================================
    COUNTER
 ========================================================= */
 
 #count {
-    min-width: 220px;
+    min-width: 240px;
 
     text-align: center;
 
@@ -215,12 +244,21 @@ button:disabled {
     color: #ddd;
 }
 
+@media(max-width:700px) {
+
+    #count {
+        min-width: 150px;
+    }
+
+    button {
+        width: 40px;
+    }
+}
+
 </style>
 </head>
 
-
 <body>
-
 
 <div id="stage">
 
@@ -228,7 +266,32 @@ button:disabled {
         Preparing catalogue…
     </div>
 
-    <div id="book-positioner">
+    <!-- ===================================================
+         REAL SINGLE-PAGE CLOSED BOOK
+
+         Used for:
+         FRONT COVER
+         BACK COVER
+    ==================================================== -->
+
+    <div
+        id="closedView"
+        aria-label="Closed catalogue"
+    >
+
+        <img
+            id="closedImage"
+            alt="Catalogue cover"
+        >
+
+    </div>
+
+
+    <!-- ===================================================
+         OPEN TWO-PAGE BOOK
+    ==================================================== -->
+
+    <div id="openView">
 
         <div id="book"></div>
 
@@ -239,7 +302,10 @@ button:disabled {
 
 <footer>
 
-    <button id="prev">
+    <button
+        id="prev"
+        aria-label="Previous"
+    >
         ‹
     </button>
 
@@ -247,12 +313,14 @@ button:disabled {
         Front Cover
     </span>
 
-    <button id="next">
+    <button
+        id="next"
+        aria-label="Next"
+    >
         ›
     </button>
 
 </footer>
-
 
 
 <script>
@@ -270,31 +338,49 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 ========================================================= */
 
 const stage =
-    document.getElementById("stage");
-
-
-const positioner =
-    document.getElementById("book-positioner");
-
-
-const book =
-    document.getElementById("book");
-
+    document.getElementById(
+        "stage"
+    );
 
 const loading =
-    document.getElementById("loading");
+    document.getElementById(
+        "loading"
+    );
 
+const closedView =
+    document.getElementById(
+        "closedView"
+    );
 
-const count =
-    document.getElementById("count");
+const closedImage =
+    document.getElementById(
+        "closedImage"
+    );
 
+const openView =
+    document.getElementById(
+        "openView"
+    );
 
-const nextButton =
-    document.getElementById("next");
-
+const book =
+    document.getElementById(
+        "book"
+    );
 
 const prevButton =
-    document.getElementById("prev");
+    document.getElementById(
+        "prev"
+    );
+
+const nextButton =
+    document.getElementById(
+        "next"
+    );
+
+const count =
+    document.getElementById(
+        "count"
+    );
 
 
 /* =========================================================
@@ -303,37 +389,60 @@ const prevButton =
 
 let flip = null;
 
-let totalPdfPages = 0;
+let pdfImages = [];
 
-let totalBookPages = 0;
+let interiorImages = [];
+
+let totalPdfPages = 0;
 
 let pageWidth = 0;
 
 let pageHeight = 0;
 
 
+/*
+ * Possible modes:
+ *
+ * front
+ * open
+ * back
+ */
+
+let mode =
+    "front";
+
+
+/*
+ * 0 = PDF pages 2-3
+ * 1 = PDF pages 4-5
+ * 2 = PDF pages 6-7
+ * ...
+ */
+
+let openSpread = 0;
+
+
 /* =========================================================
-   CREATE BACK COVER
+   CREATE WHITE PAGE
 ========================================================= */
 
-function createBackCover(
+function makeWhiteBackCover(
     width,
     height
 ) {
 
     const canvas =
-        document.createElement("canvas");
-
+        document.createElement(
+            "canvas"
+        );
 
     canvas.width =
         width;
 
-
     canvas.height =
         height;
 
-
-    const ctx =
+    const context =
         canvas.getContext(
             "2d",
             {
@@ -341,27 +450,89 @@ function createBackCover(
             }
         );
 
-
-    /*
-     * White physical back cover.
-     */
-
-    ctx.fillStyle =
+    context.fillStyle =
         "#ffffff";
 
-
-    ctx.fillRect(
+    context.fillRect(
         0,
         0,
         width,
         height
     );
 
-
     return canvas.toDataURL(
         "image/jpeg",
-        0.96
+        .96
     );
+}
+
+
+/* =========================================================
+   SIZE BOOK
+========================================================= */
+
+function sizeViews(
+    ratio
+) {
+
+    /*
+     * Calculate size based on OPEN book.
+     *
+     * Two pages must fit horizontally.
+     */
+
+    pageHeight =
+        Math.floor(
+
+            Math.min(
+
+                stage.clientHeight
+                    * .90,
+
+                (
+                    stage.clientWidth
+                    * .92
+                )
+                /
+                (
+                    2 * ratio
+                )
+
+            )
+
+        );
+
+
+    pageWidth =
+        Math.floor(
+            pageHeight * ratio
+        );
+
+
+    /*
+     * CLOSED book:
+     *
+     * EXACTLY ONE PAGE.
+     */
+
+    closedView.style.width =
+        pageWidth + "px";
+
+    closedView.style.height =
+        pageHeight + "px";
+
+
+    /*
+     * OPEN book:
+     *
+     * EXACTLY TWO PAGES.
+     */
+
+    openView.style.width =
+        (pageWidth * 2) + "px";
+
+    openView.style.height =
+        pageHeight + "px";
 
 }
 
@@ -389,9 +560,6 @@ async function start() {
         pdf.numPages;
 
 
-    const images = [];
-
-
     let ratio = 0;
 
     let renderedWidth = 0;
@@ -400,7 +568,7 @@ async function start() {
 
 
     /* =====================================================
-       RENDER PDF
+       CONVERT PDF TO IMAGES
     ===================================================== */
 
     for (
@@ -419,6 +587,10 @@ async function start() {
                 scale: 2
             });
 
+
+        /*
+         * Get page ratio.
+         */
 
         if (!ratio) {
 
@@ -455,7 +627,7 @@ async function start() {
             canvas.height;
 
 
-        const ctx =
+        const context =
             canvas.getContext(
                 "2d",
                 {
@@ -464,11 +636,15 @@ async function start() {
             );
 
 
-        ctx.fillStyle =
+        /*
+         * White PDF background.
+         */
+
+        context.fillStyle =
             "#ffffff";
 
 
-        ctx.fillRect(
+        context.fillRect(
             0,
             0,
             canvas.width,
@@ -476,10 +652,14 @@ async function start() {
         );
 
 
+        /*
+         * Render.
+         */
+
         await page.render({
 
             canvasContext:
-                ctx,
+                context,
 
             viewport:
                 viewport
@@ -487,11 +667,15 @@ async function start() {
         }).promise;
 
 
-        images.push(
+        /*
+         * Save image.
+         */
+
+        pdfImages.push(
 
             canvas.toDataURL(
                 "image/jpeg",
-                0.96
+                .96
             )
 
         );
@@ -500,86 +684,90 @@ async function start() {
 
 
     /* =====================================================
-       ADD PHYSICAL BACK COVER
+       SIZE EVERYTHING
     ===================================================== */
 
-    /*
-     * Your PDF has 13 pages.
-     *
-     * PAGE 1
-     * front cover
-     *
-     * PAGE 2 - 13
-     * actual paper
-     *
-     * PAGE 14
-     * generated white back cover
-     */
-
-
-    images.push(
-
-        createBackCover(
-            renderedWidth,
-            renderedHeight
-        )
-
+    sizeViews(
+        ratio
     );
 
 
-    totalBookPages =
-        images.length;
-
-
     /* =====================================================
-       CALCULATE PAGE SIZE
+       IMPORTANT BOOK STRUCTURE
     ===================================================== */
 
     /*
-     * OPEN book must fit on screen.
+     *
+     * PDF PAGE 1
+     *
+     * IS NOT GIVEN TO PAGEFLIP.
+     *
+     * It is displayed separately as:
+     *
+     *       ┌───────────┐
+     *       │  PAGE 1   │
+     *       │   COVER   │
+     *       └───────────┘
+     *
+     *
+     * PageFlip receives:
+     *
+     * PDF 2
+     * PDF 3
+     * ...
+     * PDF 13
+     *
+     *
+     * Therefore:
+     *
+     * ┌───────┬───────┐
+     * │   2   │   3   │
+     * └───────┴───────┘
+     *
+     * ┌───────┬───────┐
+     * │   4   │   5   │
+     * └───────┴───────┘
+     *
+     * etc.
      */
 
-    pageHeight =
-        Math.floor(
 
-            Math.min(
+    interiorImages =
+        pdfImages.slice(1);
 
-                stage.clientHeight * 0.90,
 
-                (
-                    stage.clientWidth * 0.90
-                )
-                /
-                (
-                    2 * ratio
-                )
+    /*
+     * Generic protection.
+     *
+     * If another PDF has an odd number
+     * of inside pages, complete the final
+     * spread.
+     *
+     * Your current 13-page PDF gives:
+     *
+     * 12 inside pages
+     *
+     * so NO blank is added.
+     */
 
+    if (
+        interiorImages.length % 2 !== 0
+    ) {
+
+        interiorImages.push(
+
+            makeWhiteBackCover(
+                renderedWidth,
+                renderedHeight
             )
 
         );
 
-
-    pageWidth =
-        Math.floor(
-            pageHeight * ratio
-        );
-
-
-    /*
-     * Make page width available to CSS.
-     */
-
-    positioner.style.setProperty(
-
-        "--page-width",
-
-        `${pageWidth}px`
-
-    );
+    }
 
 
     /* =====================================================
-       PAGEFLIP
+       CREATE PAGEFLIP
     ===================================================== */
 
     flip =
@@ -615,36 +803,51 @@ async function start() {
 
 
                 /*
-                 * FIRST + LAST PAGE
-                 * become covers.
+                 * VERY IMPORTANT:
+                 *
+                 * PageFlip contains ONLY
+                 * inside pages.
+                 *
+                 * Therefore:
+                 *
+                 * NO cover handling.
                  */
 
                 showCover:
-                    true,
+                    false,
 
 
                 /*
-                 * Desktop physical-book mode.
+                 * Always two pages
+                 * on desktop.
                  */
 
                 usePortrait:
                     false,
 
 
-                autoSize:
-                    true,
+                /*
+                 * We control dimensions.
+                 */
 
+                autoSize:
+                    false,
+
+
+                /*
+                 * Book effects.
+                 */
 
                 drawShadow:
                     true,
 
 
                 maxShadowOpacity:
-                    0.55,
+                    .55,
 
 
                 flippingTime:
-                    900,
+                    850,
 
 
                 useMouseEvents:
@@ -672,169 +875,224 @@ async function start() {
 
 
     /* =====================================================
-       LOAD PAGES
+       LOAD INTERIOR PAGES
     ===================================================== */
 
     flip.loadFromImages(
-        images
+        interiorImages
     );
 
 
     /* =====================================================
-       EVENTS
+       PAGEFLIP INITIALIZED
     ===================================================== */
 
     flip.on(
         "init",
         function () {
 
-            updateBookState();
+            book.style.visibility =
+                "visible";
 
         }
     );
 
+
+    /* =====================================================
+       PAGE TURNED
+    ===================================================== */
 
     flip.on(
         "flip",
         function () {
 
-            updateBookState();
 
-        }
-    );
+            if (
+                mode !== "open"
+            ) {
+
+                return;
+
+            }
 
 
-    flip.on(
-        "changeOrientation",
-        function () {
+            /*
+             * PageFlip indexes:
+             *
+             * 0 = PDF 2
+             * 1 = PDF 3
+             * 2 = PDF 4
+             * 3 = PDF 5
+             * etc.
+             */
 
-            updateBookState();
+            const index =
+                flip.getCurrentPageIndex();
+
+
+            openSpread =
+                Math.floor(
+                    index / 2
+                );
+
+
+            updateCounter();
 
         }
     );
 
 
     /* =====================================================
-       SHOW
+       FINISHED LOADING
     ===================================================== */
-
-    book.style.visibility =
-        "visible";
-
 
     loading.style.display =
         "none";
 
 
-    updateBookState();
+    /*
+     * START CLOSED.
+     */
+
+    showFront();
 
 }
 
 
 /* =========================================================
-   UPDATE BOOK
+   SHOW FRONT COVER
 ========================================================= */
 
-function updateBookState() {
+function showFront() {
 
 
-    if (!flip) {
-        return;
-    }
+    mode =
+        "front";
 
 
-    const index =
-        flip.getCurrentPageIndex();
+    /*
+     * Hide open book.
+     */
+
+    openView.style.display =
+        "none";
 
 
-    /* =====================================================
-       RESET
-    ===================================================== */
+    /*
+     * Show real one-page cover.
+     */
 
-    positioner.classList.remove(
-        "front-cover",
-        "open-book",
-        "back-cover"
-    );
+    closedView.style.display =
+        "block";
 
 
-    /* =====================================================
-       FRONT COVER
-    ===================================================== */
-
-    if (
-        index === 0
-    ) {
+    closedView.className =
+        "front";
 
 
-        /*
-         * CLOSED BOOK.
-         */
+    /*
+     * REAL PDF PAGE 1.
+     */
 
-        positioner.classList.add(
-            "front-cover"
+    closedImage.src =
+        pdfImages[0];
+
+
+    count.textContent =
+        `Front Cover · Page 1 / ${totalPdfPages}`;
+
+
+    prevButton.disabled =
+        true;
+
+
+    nextButton.disabled =
+        false;
+
+}
+
+
+/* =========================================================
+   SHOW OPEN BOOK
+========================================================= */
+
+function showOpen(
+    spreadIndex = 0
+) {
+
+
+    mode =
+        "open";
+
+
+    /*
+     * Hide closed cover.
+     */
+
+    closedView.style.display =
+        "none";
+
+
+    /*
+     * Show PageFlip.
+     */
+
+    openView.style.display =
+        "block";
+
+
+    /*
+     * Maximum spread.
+     */
+
+    const maxSpread =
+        Math.max(
+
+            0,
+
+            Math.ceil(
+                interiorImages.length / 2
+            ) - 1
+
         );
 
 
-        count.textContent =
-            `Front Cover · Page 1 / ${totalPdfPages}`;
+    openSpread =
+        Math.max(
 
+            0,
 
-        prevButton.disabled =
-            true;
+            Math.min(
+                spreadIndex,
+                maxSpread
+            )
 
-
-        nextButton.disabled =
-            false;
-
-
-        return;
-
-    }
-
-
-    /* =====================================================
-       BACK COVER
-    ===================================================== */
-
-    if (
-        index >= totalBookPages - 1
-    ) {
-
-
-        /*
-         * CLOSED BOOK.
-         */
-
-        positioner.classList.add(
-            "back-cover"
         );
 
 
-        count.textContent =
-            "Back Cover";
+    /*
+     * Convert spread number to
+     * PageFlip page index.
+     *
+     * Spread 0 -> index 0
+     * Spread 1 -> index 2
+     * Spread 2 -> index 4
+     */
+
+    const target =
+        openSpread * 2;
 
 
-        prevButton.disabled =
-            false;
+    /*
+     * Jump to left page.
+     */
 
-
-        nextButton.disabled =
-            true;
-
-
-        return;
-
-    }
-
-
-    /* =====================================================
-       OPEN BOOK
-    ===================================================== */
-
-    positioner.classList.add(
-        "open-book"
+    flip.turnToPage(
+        target
     );
+
+
+    updateCounter();
 
 
     prevButton.disabled =
@@ -844,59 +1102,162 @@ function updateBookState() {
     nextButton.disabled =
         false;
 
+}
+
+
+/* =========================================================
+   SHOW BACK COVER
+========================================================= */
+
+function showBack() {
+
+
+    mode =
+        "back";
+
+
+    /*
+     * Hide open book.
+     */
+
+    openView.style.display =
+        "none";
+
+
+    /*
+     * Show one-page closed book.
+     */
+
+    closedView.style.display =
+        "block";
+
+
+    closedView.className =
+        "back";
+
 
     /* =====================================================
-       FIND CURRENT SPREAD
+       CREATE WHITE BACK COVER
     ===================================================== */
 
-    let leftIndex;
+    const canvas =
+        document.createElement(
+            "canvas"
+        );
+
+
+    canvas.width =
+        1200;
+
+
+    canvas.height =
+        Math.round(
+
+            1200 *
+            (
+                pageHeight /
+                pageWidth
+            )
+
+        );
+
+
+    const context =
+        canvas.getContext(
+            "2d",
+            {
+                alpha: false
+            }
+        );
+
+
+    context.fillStyle =
+        "#ffffff";
+
+
+    context.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    closedImage.src =
+        canvas.toDataURL(
+            "image/jpeg",
+            .96
+        );
+
+
+    count.textContent =
+        "Back Cover";
+
+
+    prevButton.disabled =
+        false;
+
+
+    nextButton.disabled =
+        true;
+
+}
+
+
+/* =========================================================
+   UPDATE PAGE COUNTER
+========================================================= */
+
+function updateCounter() {
 
 
     if (
-        index % 2 === 1
+        mode !== "open"
     ) {
 
-        leftIndex =
-            index;
-
-    } else {
-
-        leftIndex =
-            index - 1;
+        return;
 
     }
 
 
-    const rightIndex =
-        leftIndex + 1;
+    /*
+     * Spread 0:
+     *
+     * PDF 2 + 3
+     *
+     *
+     * Spread 1:
+     *
+     * PDF 4 + 5
+     *
+     * etc.
+     */
+
+    const leftPdf =
+        2 +
+        (
+            openSpread * 2
+        );
 
 
-    const leftPage =
-        leftIndex + 1;
+    const rightPdf =
+        leftPdf + 1;
 
-
-    const rightPage =
-        rightIndex + 1;
-
-
-    /* =====================================================
-       COUNTER
-    ===================================================== */
 
     if (
-        rightPage <= totalPdfPages
+        rightPdf <= totalPdfPages
     ) {
 
 
         count.textContent =
-            `Pages ${leftPage}–${rightPage} / ${totalPdfPages}`;
+            `Pages ${leftPdf}–${rightPdf} / ${totalPdfPages}`;
 
 
     } else {
 
 
         count.textContent =
-            `Page ${leftPage} / ${totalPdfPages}`;
+            `Page ${leftPdf} / ${totalPdfPages}`;
 
     }
 
@@ -907,56 +1268,228 @@ function updateBookState() {
    NEXT
 ========================================================= */
 
-nextButton.addEventListener(
-
-    "click",
-
-    function () {
+function next() {
 
 
-        if (
-            !flip ||
-            nextButton.disabled
-        ) {
+    /* =====================================================
+       FRONT -> OPEN
+    ===================================================== */
 
-            return;
+    if (
+        mode === "front"
+    ) {
 
-        }
 
+        /*
+         * Opens directly to:
+         *
+         * PAGE 2 | PAGE 3
+         */
 
-        flip.flipNext(
-            "bottom"
-        );
+        showOpen(0);
+
+        return;
 
     }
 
-);
+
+    /* =====================================================
+       ALREADY AT BACK
+    ===================================================== */
+
+    if (
+        mode === "back"
+    ) {
+
+        return;
+
+    }
+
+
+    /* =====================================================
+       OPEN BOOK
+    ===================================================== */
+
+    const maxSpread =
+        Math.ceil(
+            interiorImages.length / 2
+        ) - 1;
+
+
+    /*
+     * LAST OPEN SPREAD?
+     *
+     * For your PDF:
+     *
+     * PAGE 12 | PAGE 13
+     *
+     * Next click closes the book.
+     */
+
+    if (
+        openSpread >= maxSpread
+    ) {
+
+
+        showBack();
+
+        return;
+
+    }
+
+
+    /*
+     * Normal animated page flip.
+     */
+
+    flip.flipNext(
+        "bottom"
+    );
+
+}
 
 
 /* =========================================================
    PREVIOUS
 ========================================================= */
 
+function previous() {
+
+
+    /* =====================================================
+       BACK -> LAST SPREAD
+    ===================================================== */
+
+    if (
+        mode === "back"
+    ) {
+
+
+        const maxSpread =
+            Math.ceil(
+                interiorImages.length / 2
+            ) - 1;
+
+
+        /*
+         * Reopen:
+         *
+         * PAGE 12 | PAGE 13
+         */
+
+        showOpen(
+            maxSpread
+        );
+
+
+        return;
+
+    }
+
+
+    /* =====================================================
+       ALREADY FRONT
+    ===================================================== */
+
+    if (
+        mode === "front"
+    ) {
+
+        return;
+
+    }
+
+
+    /* =====================================================
+       FIRST OPEN SPREAD?
+    ===================================================== */
+
+    if (
+        openSpread <= 0
+    ) {
+
+
+        /*
+         * PAGE 2 | PAGE 3
+         *
+         * Previous closes to PAGE 1.
+         */
+
+        showFront();
+
+        return;
+
+    }
+
+
+    /*
+     * Normal previous page animation.
+     */
+
+    flip.flipPrev(
+        "bottom"
+    );
+
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+nextButton.addEventListener(
+    "click",
+    next
+);
+
+
 prevButton.addEventListener(
+    "click",
+    previous
+);
+
+
+/* =========================================================
+   CLICK CLOSED COVER
+========================================================= */
+
+closedView.addEventListener(
 
     "click",
 
     function () {
 
 
+        /*
+         * Click front:
+         *
+         * OPEN BOOK.
+         */
+
         if (
-            !flip ||
-            prevButton.disabled
+            mode === "front"
         ) {
+
+            next();
 
             return;
 
         }
 
 
-        flip.flipPrev(
-            "bottom"
-        );
+        /*
+         * Click back:
+         *
+         * REOPEN BOOK.
+         */
+
+        if (
+            mode === "back"
+        ) {
+
+            previous();
+
+        }
 
     }
 
@@ -971,38 +1504,27 @@ document.addEventListener(
 
     "keydown",
 
-    function (event) {
-
-
-        if (!flip) {
-            return;
-        }
+    function (
+        event
+    ) {
 
 
         if (
             event.key ===
-            "ArrowRight" &&
-            !nextButton.disabled
+            "ArrowRight"
         ) {
 
-
-            flip.flipNext(
-                "bottom"
-            );
+            next();
 
         }
 
 
         if (
             event.key ===
-            "ArrowLeft" &&
-            !prevButton.disabled
+            "ArrowLeft"
         ) {
 
-
-            flip.flipPrev(
-                "bottom"
-            );
+            previous();
 
         }
 
@@ -1012,12 +1534,14 @@ document.addEventListener(
 
 
 /* =========================================================
-   LOAD
+   START
 ========================================================= */
 
 start().catch(
 
-    function (error) {
+    function (
+        error
+    ) {
 
 
         console.error(
