@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="en">
-
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -10,7 +9,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
-
 * {
     box-sizing: border-box;
 }
@@ -66,38 +64,12 @@ body {
 /* =========================================================
    CLOSED BOOK
 ========================================================= */
-    @keyframes bookIntro {
-    0% {
-        transform: scale(.16) rotateZ(2deg) rotateY(-8deg);
-        opacity: 0;
-    }
-
-    35% {
-        opacity: 1;
-    }
-
-    75% {
-        transform: scale(1.04) rotateZ(-0.5deg) rotateY(0deg);
-    }
-
-    100% {
-        transform: scale(1) rotateZ(0deg) rotateY(0deg);
-        opacity: 1;
-    }
-}
-
-#closedBook.intro {
-    animation: bookIntro 1.25s cubic-bezier(.16,.8,.25,1) forwards;
-}
-    
 
 #closedBook {
     display: none;
-
     position: absolute;
 
     background: #fff;
-
     overflow: hidden;
 
     box-shadow:
@@ -108,9 +80,7 @@ body {
 
     will-change:
         transform,
-        opacity,
-        left,
-        top;
+        opacity;
 
     cursor: pointer;
 
@@ -123,12 +93,8 @@ body {
     height: 100%;
 }
 
-
-/* subtle book thickness */
-
 #closedBook::before {
     content: "";
-
     position: absolute;
     z-index: 5;
 
@@ -151,7 +117,6 @@ body {
 
 #closedBook::after {
     content: "";
-
     position: absolute;
     z-index: 5;
 
@@ -193,9 +158,7 @@ body {
 
     will-change:
         transform,
-        opacity,
-        left,
-        top;
+        opacity;
 
     z-index: 10;
 }
@@ -240,7 +203,7 @@ body {
     top: 0;
     right: 0;
 
-    width: 32px;
+    width: 30px;
     height: 100%;
 
     pointer-events: none;
@@ -248,7 +211,7 @@ body {
     background:
         linear-gradient(
             to left,
-            rgba(0,0,0,.16),
+            rgba(0,0,0,.15),
             rgba(0,0,0,.05),
             transparent
         );
@@ -266,7 +229,7 @@ body {
     top: 0;
     left: 0;
 
-    width: 32px;
+    width: 30px;
     height: 100%;
 
     pointer-events: none;
@@ -274,7 +237,7 @@ body {
     background:
         linear-gradient(
             to right,
-            rgba(0,0,0,.16),
+            rgba(0,0,0,.15),
             rgba(0,0,0,.05),
             transparent
         );
@@ -293,7 +256,7 @@ body {
     bottom: 0;
     left: 50%;
 
-    width: 18px;
+    width: 16px;
 
     transform: translateX(-50%);
 
@@ -312,7 +275,7 @@ body {
 
 
 /* =========================================================
-   NORMAL PAGE FLIP
+   FLIPPING PAGE
 ========================================================= */
 
 #flipSheet {
@@ -369,12 +332,14 @@ body {
         linear-gradient(
             90deg,
             rgba(0,0,0,.02),
-            rgba(0,0,0,.30)
+            rgba(0,0,0,.24)
         );
 }
 
 
-/* NEXT */
+/* =========================================================
+   NEXT PAGE
+========================================================= */
 
 #flipSheet.flip-next {
     left: 50%;
@@ -383,21 +348,23 @@ body {
 
     animation:
         flipNext
-        760ms
-        cubic-bezier(.42,.02,.18,1)
+        400ms
+        cubic-bezier(.45,.05,.20,1)
         forwards;
 }
 
 #flipSheet.flip-next #flipShade {
     animation:
         flipShade
-        760ms
-        ease
+        400ms
+        ease-in-out
         forwards;
 }
 
 
-/* PREVIOUS */
+/* =========================================================
+   PREVIOUS PAGE
+========================================================= */
 
 #flipSheet.flip-prev {
     left: 0;
@@ -406,19 +373,23 @@ body {
 
     animation:
         flipPrev
-        760ms
-        cubic-bezier(.42,.02,.18,1)
+        400ms
+        cubic-bezier(.45,.05,.20,1)
         forwards;
 }
 
 #flipSheet.flip-prev #flipShade {
     animation:
         flipShade
-        760ms
-        ease
+        400ms
+        ease-in-out
         forwards;
 }
 
+
+/* =========================================================
+   PAGE ANIMATIONS
+========================================================= */
 
 @keyframes flipNext {
 
@@ -426,16 +397,20 @@ body {
         transform: rotateY(0deg);
     }
 
-    25% {
-        transform: rotateY(-38deg);
+    20% {
+        transform: rotateY(-25deg);
     }
 
-    50% {
-        transform: rotateY(-90deg);
+    45% {
+        transform: rotateY(-72deg);
     }
 
-    75% {
-        transform: rotateY(-142deg);
+    55% {
+        transform: rotateY(-108deg);
+    }
+
+    80% {
+        transform: rotateY(-155deg);
     }
 
     100% {
@@ -443,23 +418,26 @@ body {
     }
 }
 
-
 @keyframes flipPrev {
 
     0% {
         transform: rotateY(0deg);
     }
 
-    25% {
-        transform: rotateY(38deg);
+    20% {
+        transform: rotateY(25deg);
     }
 
-    50% {
-        transform: rotateY(90deg);
+    45% {
+        transform: rotateY(72deg);
     }
 
-    75% {
-        transform: rotateY(142deg);
+    55% {
+        transform: rotateY(108deg);
+    }
+
+    80% {
+        transform: rotateY(155deg);
     }
 
     100% {
@@ -467,41 +445,27 @@ body {
     }
 }
 
-
 @keyframes flipShade {
 
     0% {
         opacity: 0;
     }
 
-    45% {
-        opacity: .40;
+    30% {
+        opacity: .16;
     }
 
-    55% {
-        opacity: .44;
+    50% {
+        opacity: .36;
+    }
+
+    70% {
+        opacity: .16;
     }
 
     100% {
         opacity: 0;
     }
-}
-
-
-/* =========================================================
-   COVER TRANSITION OVERLAY
-========================================================= */
-
-#transitionShade {
-    display: none;
-
-    position: absolute;
-
-    z-index: 15;
-
-    pointer-events: none;
-
-    background: rgba(0,0,0,0);
 }
 
 
@@ -574,13 +538,11 @@ button:disabled {
         min-width: 150px;
     }
 }
-
 </style>
 </head>
 
 
 <body>
-
 
 <div id="stage">
 
@@ -588,21 +550,19 @@ button:disabled {
         Loading catalogue...
     </div>
 
-
     <div id="viewer">
 
 
-        <!-- CLOSED SINGLE BOOK -->
+        <!-- SINGLE CLOSED FRONT / BACK COVER -->
 
         <div id="closedBook">
             <canvas id="closedCanvas"></canvas>
         </div>
 
 
-        <!-- OPEN TWO-PAGE BOOK -->
+        <!-- OPEN BOOK -->
 
         <div id="openBook">
-
 
             <div
                 id="leftPage"
@@ -610,7 +570,6 @@ button:disabled {
             >
                 <canvas id="leftCanvas"></canvas>
             </div>
-
 
             <div
                 id="rightPage"
@@ -620,7 +579,7 @@ button:disabled {
             </div>
 
 
-            <!-- MOVING INTERIOR PAGE -->
+            <!-- PAGE THAT ACTUALLY TURNS -->
 
             <div id="flipSheet">
 
@@ -642,14 +601,9 @@ button:disabled {
 
             </div>
 
-
             <div id="spine"></div>
 
         </div>
-
-
-        <div id="transitionShade"></div>
-
 
     </div>
 
@@ -666,11 +620,9 @@ button:disabled {
         ‹
     </button>
 
-
     <div id="counter">
         Loading...
     </div>
-
 
     <button
         id="next"
@@ -689,11 +641,22 @@ button:disabled {
    CONFIG
 ========================================================= */
 
-const PDF_FILE =
-    "catalogue.pdf?v=2";
+/*
+   Keep your PDF in the same folder as index.html.
 
-const TURN_TIME = 420;
-const COVER_TIME = 500;
+   When you replace the PDF but keep the same filename,
+   change v=2 to v=3, v=4 etc. to avoid browser cache.
+*/
+
+const PDF_FILE = "catalogue.pdf?v=2";
+
+
+/* Internal page turn */
+const TURN_TIME = 400;
+
+
+/* Front/back cover opening */
+const COVER_TIME = 520;
 
 
 /* =========================================================
@@ -747,9 +710,6 @@ const flipFrontCanvas =
 const flipBackCanvas =
     document.getElementById("flipBackCanvas");
 
-const transitionShade =
-    document.getElementById("transitionShade");
-
 const prevButton =
     document.getElementById("prev");
 
@@ -797,16 +757,18 @@ function wait(ms) {
 function nextFrame() {
 
     return new Promise(
-        resolve => requestAnimationFrame(
-            () => requestAnimationFrame(resolve)
-        )
+        resolve =>
+            requestAnimationFrame(
+                () =>
+                    requestAnimationFrame(resolve)
+            )
     );
 
 }
 
 
 /* =========================================================
-   PDF RATIO
+   GET PDF PAGE RATIO
 ========================================================= */
 
 async function getPdfRatio() {
@@ -827,7 +789,7 @@ async function getPdfRatio() {
 
 
 /* =========================================================
-   SIZE
+   CALCULATE BOOK SIZE
 ========================================================= */
 
 function calculateSize() {
@@ -838,6 +800,11 @@ function calculateSize() {
     const availableHeight =
         stage.clientHeight - 40;
 
+
+    /*
+       Calculate the maximum size of TWO pages
+       while keeping the original PDF aspect ratio.
+    */
 
     const heightFromWidth =
         availableWidth /
@@ -863,7 +830,7 @@ function calculateSize() {
         Math.floor(displayHeight);
 
 
-    /* CLOSED */
+    /* CLOSED BOOK */
 
     closedBook.style.width =
         displayWidth + "px";
@@ -872,7 +839,7 @@ function calculateSize() {
         displayHeight + "px";
 
 
-    /* OPEN */
+    /* OPEN BOOK */
 
     openBook.style.width =
         (displayWidth * 2) + "px";
@@ -908,7 +875,7 @@ function calculateSize() {
 
 
 /* =========================================================
-   CENTER BOOKS
+   CENTER BOOK
 ========================================================= */
 
 function positionBooks() {
@@ -919,6 +886,8 @@ function positionBooks() {
     const centerY =
         viewer.clientHeight / 2;
 
+
+    /* SINGLE COVER */
 
     closedBook.style.left =
         Math.round(
@@ -932,6 +901,8 @@ function positionBooks() {
             displayHeight / 2
         ) + "px";
 
+
+    /* OPEN TWO-PAGE BOOK */
 
     openBook.style.left =
         Math.round(
@@ -979,15 +950,21 @@ async function renderPage(
         );
 
 
-    const base =
+    const baseViewport =
         page.getViewport({
             scale: 1
         });
 
 
+    /*
+       Scale according to PAGE WIDTH.
+
+       This prevents the zoom/cropping problem.
+    */
+
     const scale =
         (displayWidth * dpr) /
-        base.width;
+        baseViewport.width;
 
 
     const viewport =
@@ -1041,7 +1018,7 @@ async function renderPage(
 
 
 /* =========================================================
-   CLEAR PAGE
+   BLANK PAGE
 ========================================================= */
 
 function clearCanvas(canvas) {
@@ -1094,7 +1071,7 @@ function clearCanvas(canvas) {
 
 
 /* =========================================================
-   RESET FLIP
+   RESET FLIP PAGE
 ========================================================= */
 
 function resetFlip() {
@@ -1161,12 +1138,13 @@ function updateCounter() {
 
 
 /* =========================================================
-   LAST SPREAD
+   FIND LAST SPREAD
 ========================================================= */
 
 function getLastLeftPage() {
 
     let result;
+
 
     if (
         totalPages % 2 === 1
@@ -1203,7 +1181,7 @@ function getLastLeftPage() {
 
 
 /* =========================================================
-   RENDER SPREAD
+   RENDER OPEN SPREAD
 ========================================================= */
 
 async function renderSpread(
@@ -1251,15 +1229,13 @@ async function renderSpread(
 
 
 /* =========================================================
-   FRONT COVER STATIC
+   SHOW FRONT COVER
 ========================================================= */
 
 async function showFront() {
-    closedBook.classList.remove("intro");
-    void closedBook.offsetWidth;
-    closedBook.classList.add("intro");
 
     resetFlip();
+
 
     mode =
         "front";
@@ -1268,9 +1244,13 @@ async function showFront() {
     openBook.style.display =
         "none";
 
+
     closedBook.style.display =
         "block";
 
+
+    closedBook.style.transition =
+        "none";
 
     closedBook.style.opacity =
         "1";
@@ -1278,6 +1258,9 @@ async function showFront() {
     closedBook.style.transform =
         "translateX(0) scale(1)";
 
+
+    openBook.style.transition =
+        "none";
 
     openBook.style.opacity =
         "1";
@@ -1309,7 +1292,7 @@ async function showFront() {
 
 
 /* =========================================================
-   OPEN STATIC
+   SHOW NORMAL SPREAD
 ========================================================= */
 
 async function showSpread(
@@ -1318,6 +1301,7 @@ async function showSpread(
 
     resetFlip();
 
+
     mode =
         "open";
 
@@ -1325,9 +1309,13 @@ async function showSpread(
     closedBook.style.display =
         "none";
 
+
     openBook.style.display =
         "block";
 
+
+    openBook.style.transition =
+        "none";
 
     openBook.style.opacity =
         "1";
@@ -1353,12 +1341,13 @@ async function showSpread(
 
 
 /* =========================================================
-   BACK STATIC
+   SHOW BACK COVER
 ========================================================= */
 
 function showBack() {
 
     resetFlip();
+
 
     mode =
         "back";
@@ -1366,6 +1355,7 @@ function showBack() {
 
     openBook.style.display =
         "none";
+
 
     closedBook.style.display =
         "block";
@@ -1375,6 +1365,9 @@ function showBack() {
         closedCanvas
     );
 
+
+    closedBook.style.transition =
+        "none";
 
     closedBook.style.opacity =
         "1";
@@ -1400,22 +1393,29 @@ function showBack() {
 
 
 /* =========================================================
-   SMOOTH FRONT COVER -> OPEN BOOK
+   FRONT COVER -> OPEN BOOK
 ========================================================= */
 
 async function openFromFront() {
 
-    if (isAnimating) return;
+    if (isAnimating) {
+        return;
+    }
 
-    isAnimating = true;
+
+    isAnimating =
+        true;
 
 
-    prevButton.disabled = true;
-    nextButton.disabled = true;
+    prevButton.disabled =
+        true;
+
+    nextButton.disabled =
+        true;
 
 
     /*
-        Prepare spread 2–3.
+       Prepare pages 2 and 3 before animation.
     */
 
     await renderSpread(2);
@@ -1425,14 +1425,6 @@ async function openFromFront() {
         "block";
 
 
-    /*
-        Open book begins slightly compressed,
-        slightly transparent and shifted right.
-
-        NO ROTATION.
-        NO GIANT TRIANGLE.
-    */
-
     openBook.style.transition =
         "none";
 
@@ -1440,12 +1432,8 @@ async function openFromFront() {
         "0";
 
     openBook.style.transform =
-        "translateX(35px) scale(.94)";
+        "translateX(24px) scale(.965)";
 
-
-    /*
-        Front cover stays visible above it.
-    */
 
     closedBook.style.display =
         "block";
@@ -1468,7 +1456,10 @@ async function openFromFront() {
 
 
     /*
-        Animate both simultaneously.
+       Smooth opening.
+
+       No 180 degree cover rotation.
+       This avoids the giant triangle / white page bug.
     */
 
     closedBook.style.transition =
@@ -1485,29 +1476,23 @@ async function openFromFront() {
         `;
 
 
-    /*
-        Cover moves towards the LEFT PAGE position
-        and disappears.
-
-        This visually feels like the book opening
-        without broken 3D geometry.
-    */
-
     closedBook.style.transform =
-        `translateX(${-displayWidth * .48}px) scale(.985)`;
+        `translateX(${-displayWidth * .47}px) scale(.985)`;
 
     closedBook.style.opacity =
         "0";
 
 
-    openBook.style.opacity =
-        "1";
-
     openBook.style.transform =
         "translateX(0) scale(1)";
 
+    openBook.style.opacity =
+        "1";
 
-    await wait(COVER_TIME);
+
+    await wait(
+        COVER_TIME
+    );
 
 
     closedBook.style.display =
@@ -1555,18 +1540,25 @@ async function openFromFront() {
 
 
 /* =========================================================
-   SMOOTH FIRST SPREAD -> FRONT COVER
+   FIRST SPREAD -> FRONT COVER
 ========================================================= */
 
 async function closeToFront() {
 
-    if (isAnimating) return;
+    if (isAnimating) {
+        return;
+    }
 
-    isAnimating = true;
+
+    isAnimating =
+        true;
 
 
-    prevButton.disabled = true;
-    nextButton.disabled = true;
+    prevButton.disabled =
+        true;
+
+    nextButton.disabled =
+        true;
 
 
     await renderPage(
@@ -1582,10 +1574,6 @@ async function closeToFront() {
         "30";
 
 
-    /*
-        Cover starts to the left and invisible.
-    */
-
     closedBook.style.transition =
         "none";
 
@@ -1593,7 +1581,7 @@ async function closeToFront() {
         "0";
 
     closedBook.style.transform =
-        `translateX(${-displayWidth * .48}px) scale(.985)`;
+        `translateX(${-displayWidth * .47}px) scale(.985)`;
 
 
     openBook.style.transition =
@@ -1623,13 +1611,8 @@ async function closeToFront() {
         `;
 
 
-    /*
-        Open spread softly closes into
-        the centered front cover.
-    */
-
     openBook.style.transform =
-        "translateX(35px) scale(.94)";
+        "translateX(24px) scale(.965)";
 
     openBook.style.opacity =
         "0";
@@ -1642,7 +1625,9 @@ async function closeToFront() {
         "1";
 
 
-    await wait(COVER_TIME);
+    await wait(
+        COVER_TIME
+    );
 
 
     openBook.style.display =
@@ -1688,24 +1673,31 @@ async function closeToFront() {
 
 
 /* =========================================================
-   SMOOTH LAST SPREAD -> BACK COVER
+   LAST SPREAD -> BACK COVER
 ========================================================= */
 
 async function closeToBack() {
 
-    if (isAnimating) return;
+    if (isAnimating) {
+        return;
+    }
 
-    isAnimating = true;
+
+    isAnimating =
+        true;
 
 
-    prevButton.disabled = true;
-    nextButton.disabled = true;
+    prevButton.disabled =
+        true;
+
+    nextButton.disabled =
+        true;
 
 
     /*
-        Back cover currently blank.
-        You can replace this later with
-        a real image or PDF page.
+       Blank white back cover.
+       If your PDF contains an actual back-cover page,
+       see the note below.
     */
 
     clearCanvas(
@@ -1720,10 +1712,6 @@ async function closeToBack() {
         "30";
 
 
-    /*
-        Back cover begins on right side.
-    */
-
     closedBook.style.transition =
         "none";
 
@@ -1731,7 +1719,7 @@ async function closeToBack() {
         "0";
 
     closedBook.style.transform =
-        `translateX(${displayWidth * .48}px) scale(.985)`;
+        `translateX(${displayWidth * .47}px) scale(.985)`;
 
 
     openBook.style.transition =
@@ -1761,13 +1749,8 @@ async function closeToBack() {
         `;
 
 
-    /*
-        Spread contracts while back cover
-        moves smoothly into the centre.
-    */
-
     openBook.style.transform =
-        "translateX(-35px) scale(.94)";
+        "translateX(-24px) scale(.965)";
 
     openBook.style.opacity =
         "0";
@@ -1780,7 +1763,9 @@ async function closeToBack() {
         "1";
 
 
-    await wait(COVER_TIME);
+    await wait(
+        COVER_TIME
+    );
 
 
     openBook.style.display =
@@ -1826,18 +1811,25 @@ async function closeToBack() {
 
 
 /* =========================================================
-   SMOOTH BACK COVER -> LAST SPREAD
+   BACK COVER -> LAST SPREAD
 ========================================================= */
 
 async function openFromBack() {
 
-    if (isAnimating) return;
+    if (isAnimating) {
+        return;
+    }
 
-    isAnimating = true;
+
+    isAnimating =
+        true;
 
 
-    prevButton.disabled = true;
-    nextButton.disabled = true;
+    prevButton.disabled =
+        true;
+
+    nextButton.disabled =
+        true;
 
 
     const lastLeft =
@@ -1860,7 +1852,7 @@ async function openFromBack() {
         "0";
 
     openBook.style.transform =
-        "translateX(-35px) scale(.94)";
+        "translateX(-24px) scale(.965)";
 
 
     closedBook.style.display =
@@ -1897,13 +1889,8 @@ async function openFromBack() {
         `;
 
 
-    /*
-        Back cover moves to right while
-        full book appears.
-    */
-
     closedBook.style.transform =
-        `translateX(${displayWidth * .48}px) scale(.985)`;
+        `translateX(${displayWidth * .47}px) scale(.985)`;
 
     closedBook.style.opacity =
         "0";
@@ -1916,7 +1903,9 @@ async function openFromBack() {
         "1";
 
 
-    await wait(COVER_TIME);
+    await wait(
+        COVER_TIME
+    );
 
 
     closedBook.style.display =
@@ -1964,15 +1953,19 @@ async function openFromBack() {
 
 
 /* =========================================================
-   NEXT
+   NEXT PAGE
 ========================================================= */
 
 async function goNext() {
 
-    if (isAnimating) return;
+    if (isAnimating) {
+        return;
+    }
 
 
-    /* FRONT -> BOOK */
+    /*
+       FRONT COVER -> FIRST SPREAD
+    */
 
     if (
         mode === "front"
@@ -1983,6 +1976,10 @@ async function goNext() {
         return;
     }
 
+
+    /*
+       Already at back cover
+    */
 
     if (
         mode === "back"
@@ -2005,7 +2002,9 @@ async function goNext() {
         currentLeft + 3;
 
 
-    /* LAST -> BACK */
+    /*
+       END OF PDF -> BACK COVER
+    */
 
     if (
         nextLeft > totalPages
@@ -2017,7 +2016,9 @@ async function goNext() {
     }
 
 
-    /* NORMAL TURN */
+    /*
+       NORMAL PAGE TURN
+    */
 
     isAnimating =
         true;
@@ -2030,11 +2031,21 @@ async function goNext() {
         true;
 
 
+    /*
+       Front of moving sheet =
+       current RIGHT page.
+    */
+
     await renderPage(
         currentRight,
         flipFrontCanvas
     );
 
+
+    /*
+       Back of moving sheet =
+       next LEFT page.
+    */
 
     await renderPage(
         nextLeft,
@@ -2043,7 +2054,7 @@ async function goNext() {
 
 
     /*
-        New right page underneath.
+       Prepare new right page underneath.
     */
 
     await renderPage(
@@ -2061,6 +2072,10 @@ async function goNext() {
     );
 
 
+    /*
+       Force animation restart.
+    */
+
     void flipSheet.offsetWidth;
 
 
@@ -2070,22 +2085,22 @@ async function goNext() {
 
 
     /*
-        Change left side when page
-        crosses approximately 90 degrees.
+       At approximately the middle of the turn,
+       replace the left static page.
     */
 
     setTimeout(
 
-        async () => {
+        () => {
 
-            await renderPage(
+            renderPage(
                 nextLeft,
                 leftCanvas
             );
 
         },
 
-        TURN_TIME * .50
+        TURN_TIME * .48
 
     );
 
@@ -2100,6 +2115,7 @@ async function goNext() {
 
 
     resetFlip();
+
 
     updateCounter();
 
@@ -2118,13 +2134,19 @@ async function goNext() {
 
 
 /* =========================================================
-   PREVIOUS
+   PREVIOUS PAGE
 ========================================================= */
 
 async function goPrevious() {
 
-    if (isAnimating) return;
+    if (isAnimating) {
+        return;
+    }
 
+
+    /*
+       Already at front cover.
+    */
 
     if (
         mode === "front"
@@ -2134,7 +2156,9 @@ async function goPrevious() {
     }
 
 
-    /* BACK -> LAST SPREAD */
+    /*
+       BACK COVER -> LAST SPREAD
+    */
 
     if (
         mode === "back"
@@ -2146,7 +2170,9 @@ async function goPrevious() {
     }
 
 
-    /* FIRST SPREAD -> FRONT */
+    /*
+       FIRST SPREAD -> FRONT COVER
+    */
 
     if (
         leftPageNumber <= 2
@@ -2158,7 +2184,9 @@ async function goPrevious() {
     }
 
 
-    /* NORMAL PREVIOUS */
+    /*
+       NORMAL BACKWARD TURN
+    */
 
     isAnimating =
         true;
@@ -2182,7 +2210,8 @@ async function goPrevious() {
 
 
     /*
-        Current left sheet turns right.
+       Current left page becomes
+       the moving sheet.
     */
 
     await renderPage(
@@ -2191,6 +2220,10 @@ async function goPrevious() {
     );
 
 
+    /*
+       Back side of moving sheet.
+    */
+
     await renderPage(
         previousRight,
         flipBackCanvas
@@ -2198,7 +2231,7 @@ async function goPrevious() {
 
 
     /*
-        Previous left page waits underneath.
+       Prepare previous left page underneath.
     */
 
     await renderPage(
@@ -2224,18 +2257,22 @@ async function goPrevious() {
     );
 
 
+    /*
+       Swap right page around the midpoint.
+    */
+
     setTimeout(
 
-        async () => {
+        () => {
 
-            await renderPage(
+            renderPage(
                 previousRight,
                 rightCanvas
             );
 
         },
 
-        TURN_TIME * .50
+        TURN_TIME * .48
 
     );
 
@@ -2250,6 +2287,7 @@ async function goPrevious() {
 
 
     resetFlip();
+
 
     updateCounter();
 
@@ -2268,7 +2306,7 @@ async function goPrevious() {
 
 
 /* =========================================================
-   CONTROLS
+   BUTTONS
 ========================================================= */
 
 prevButton.addEventListener(
@@ -2282,6 +2320,10 @@ nextButton.addEventListener(
     goNext
 );
 
+
+/* =========================================================
+   CLICK CLOSED COVER
+========================================================= */
 
 closedBook.addEventListener(
 
@@ -2346,7 +2388,8 @@ document.addEventListener(
    RESIZE
 ========================================================= */
 
-let resizeTimer = null;
+let resizeTimer =
+    null;
 
 
 window.addEventListener(
@@ -2413,7 +2456,7 @@ window.addEventListener(
 
 
 /* =========================================================
-   START
+   LOAD PDF
 ========================================================= */
 
 async function start() {
