@@ -975,6 +975,13 @@ button:disabled {
 #detailTextLayer {--scale-factor:1}
 #zoomOpen {width:auto;padding:0 15px;font-size:14px}
 @media(max-width:700px){#detailToolbar{gap:5px}#detailToolbar button{padding:0 8px;min-width:35px}#detailScroll{padding:8px}}
+
+/* Select and copy embedded PDF text directly in the normal flipbook view. */
+#closedBook, #leftPage, #rightPage { position:absolute; overflow:hidden; }
+.catalogueTextLayer { position:absolute; inset:0; z-index:11; overflow:hidden; pointer-events:none; user-select:text; -webkit-user-select:text; }
+.catalogueTextLayer .catalogueTextInner { position:absolute; top:0; transform-origin:0 0; line-height:1; text-align:left; user-select:text; -webkit-user-select:text; }
+.catalogueTextLayer span, .catalogueTextLayer br { position:absolute; white-space:pre; color:transparent; transform-origin:0 0; cursor:text; pointer-events:auto; user-select:text; -webkit-user-select:text; }
+.catalogueTextLayer ::selection { background:rgba(50,130,250,.48); color:transparent; }
 </style>
 
 </head>
@@ -1034,7 +1041,7 @@ button:disabled {
 
         <div id="closedBook">
 
-            <canvas id="closedCanvas"></canvas>
+            <canvas id="closedCanvas"></canvas><div id="closedTextLayer" class="catalogueTextLayer"></div>
 
         </div>
 
@@ -1051,7 +1058,7 @@ button:disabled {
                 class="page"
             >
 
-                <canvas id="leftCanvas"></canvas>
+                <canvas id="leftCanvas"></canvas><div id="leftTextLayer" class="catalogueTextLayer"></div>
 
             </div>
 
@@ -1063,7 +1070,7 @@ button:disabled {
                 class="page"
             >
 
-                <canvas id="rightCanvas"></canvas>
+                <canvas id="rightCanvas"></canvas><div id="rightTextLayer" class="catalogueTextLayer"></div>
 
             </div>
 
@@ -1696,6 +1703,38 @@ async function renderPage(
             viewport
 
     }).promise;
+
+    // Text layer in the regular catalogue, not just the zoom dialog.
+    const layerId = canvas.id === 'leftCanvas' ? 'leftTextLayer'
+                  : canvas.id === 'rightCanvas' ? 'rightTextLayer'
+                  : canvas.id === 'closedCanvas' ? 'closedTextLayer' : null;
+    if (layerId) {
+        const layer = document.getElementById(layerId);
+        const token = (layer._renderToken || 0) + 1;
+        layer._renderToken = token;
+        layer.replaceChildren();
+        layer.style.width = displayWidth + 'px';
+        layer.style.height = displayHeight + 'px';
+        const textScale = displayWidth / sourceWidth;
+        const textViewport = page.getViewport({scale:textScale});
+        const inner = document.createElement('div');
+        inner.className = 'catalogueTextInner';
+        inner.style.width = textViewport.width + 'px';
+        inner.style.height = textViewport.height + 'px';
+        inner.style.left = (mapped.half === 'right' ? -displayWidth : 0) + 'px';
+        inner.style.setProperty('--scale-factor', String(textViewport.scale));
+        layer.appendChild(inner);
+        try {
+            const textContent = await page.getTextContent();
+            if (layer._renderToken !== token) return;
+            await pdfjsLib.renderTextLayer({
+                textContentSource:textContent,
+                container:inner,
+                viewport:textViewport,
+                textDivs:[]
+            }).promise;
+        } catch (e) { console.warn('Catalogue text selection:',e); }
+    }
 
 }
 
@@ -3721,7 +3760,7 @@ async function start() {
 
 
 
-/* Zoom viewer: render each PDF source to an isolated canvas, then crop its half. */
+/* Spread zoom: show the two facing virtual pages as one original PDF spread. */
 const detailOverlay = document.getElementById('detailOverlay');
 const detailCanvas = document.getElementById('detailCanvas');
 const detailScroll = document.getElementById('detailScroll');
@@ -3729,103 +3768,117 @@ const detailPageWrap = document.getElementById('detailPageWrap');
 const detailTextClip = document.getElementById('detailTextClip');
 const detailTextLayer = document.getElementById('detailTextLayer');
 let detailPage = 1;
-let detailZoom = 0.4;
+let detailZoom = .4;
 let detailRenderSerial = 0;
 let detailRenderTask = null;
 let detailRenderPromise = Promise.resolve();
-
+function spreadStart(n) {
+    if (n <= 1) return 1;
+    if (n >= totalPages) return totalPages;
+    return 2 + 2 * Math.floor((n - 2) / 2);
+}
+function detailCounterText() {
+    return detailPage === 1 || detailPage === totalPages
+        ? `${detailPage} / ${totalPages}`
+        : `${detailPage}–${detailPage+1} / ${totalPages}`;
+}
 function renderDetail() {
     const serial = ++detailRenderSerial;
     if (detailRenderTask) { try { detailRenderTask.cancel(); } catch (_) {} }
-    // Serializing renders prevents two PDF.js tasks from painting the same canvas.
-    detailRenderPromise = detailRenderPromise.catch(()=>{}).then(async () => {
+    detailRenderPromise = detailRenderPromise.catch(()=>{}).then(async()=>{
         if (!pdf || detailOverlay.style.display !== 'flex' || serial !== detailRenderSerial) return;
-        document.getElementById('detailZoomLabel').textContent = Math.round(detailZoom * 100) + '%';
-        if (detailZoom === 0) {
-            detailPageWrap.style.display = 'none';
-            document.getElementById('detailCounter').textContent = detailPage + ' / ' + totalPages;
-            return;
-        }
+        document.getElementById('detailZoomLabel').textContent = Math.round(detailZoom*100)+'%';
+        document.getElementById('detailCounter').textContent = detailCounterText();
+        if (detailZoom === 0) { detailPageWrap.style.display = 'none'; return; }
         detailPageWrap.style.display = 'block';
         const mapped = virtualPage(detailPage);
         const page = await pdf.getPage(mapped.source);
         if (serial !== detailRenderSerial) return;
         const base = page.getViewport({scale:1});
-        const fraction = mapped.half ? .5 : 1;
-        const pageRatio = (base.width * fraction) / base.height;
+        // For inner spreads the original source PDF page already contains both facing pages.
         const available = Math.max(240, detailScroll.clientWidth - 44);
-        const cssWidth = Math.max(1, Math.round(available * detailZoom));
-        const cssHeight = Math.round(cssWidth / pageRatio);
+        const cssWidth = Math.max(1,Math.round(available*detailZoom));
+        const cssHeight = Math.max(1,Math.round(cssWidth*base.height/base.width));
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        // Avoid enormous PDF canvas allocations, particularly on high-DPI screens.
-        const rasterScale = Math.min(dpr, 4096 / Math.max(cssWidth / fraction, cssHeight));
-        const outputWidth = Math.max(1, Math.round(cssWidth * rasterScale));
-        const outputHeight = Math.max(1, Math.round(cssHeight * rasterScale));
+        const rasterScale = Math.min(dpr, 4096/Math.max(cssWidth,cssHeight));
+        const outputWidth = Math.max(1,Math.round(cssWidth*rasterScale));
+        const outputHeight = Math.max(1,Math.round(cssHeight*rasterScale));
         const sourceCanvas = document.createElement('canvas');
-        sourceCanvas.width = mapped.half ? outputWidth * 2 : outputWidth;
+        sourceCanvas.width = outputWidth;
         sourceCanvas.height = outputHeight;
-        const viewport = page.getViewport({scale: sourceCanvas.width / base.width});
-        const ctx = sourceCanvas.getContext('2d', {alpha:false});
-        detailRenderTask = page.render({canvasContext:ctx, viewport});
+        const viewport = page.getViewport({scale:outputWidth/base.width});
+        detailRenderTask = page.render({canvasContext:sourceCanvas.getContext('2d',{alpha:false}),viewport});
         try { await detailRenderTask.promise; }
-        catch (e) { if (e.name !== 'RenderingCancelledException') console.error('Zoom render:', e); return; }
+        catch(e) { if(e.name !== 'RenderingCancelledException') console.error('Spread zoom render:',e); return; }
         finally { detailRenderTask = null; }
         if (serial !== detailRenderSerial || detailOverlay.style.display !== 'flex') return;
         detailCanvas.width = outputWidth;
         detailCanvas.height = outputHeight;
-        detailCanvas.style.width = cssWidth + 'px';
-        detailCanvas.style.height = cssHeight + 'px';
-        const target = detailCanvas.getContext('2d', {alpha:false});
-        const x = mapped.half === 'right' ? outputWidth : 0;
-        target.drawImage(sourceCanvas, x, 0, outputWidth, outputHeight, 0, 0, outputWidth, outputHeight);
-        detailPageWrap.style.width = cssWidth + 'px';
-        detailPageWrap.style.height = cssHeight + 'px';
-        detailTextClip.style.width = cssWidth + 'px';
-        detailTextClip.style.height = cssHeight + 'px';
+        detailCanvas.style.width = cssWidth+'px';
+        detailCanvas.style.height = cssHeight+'px';
+        detailCanvas.getContext('2d',{alpha:false}).drawImage(sourceCanvas,0,0);
+        detailPageWrap.style.width = cssWidth+'px';
+        detailPageWrap.style.height = cssHeight+'px';
+        detailTextClip.style.width = cssWidth+'px';
+        detailTextClip.style.height = cssHeight+'px';
         detailTextLayer.replaceChildren();
-        // Match the source PDF viewport exactly, then clip the other half.
-        const textViewport = page.getViewport({scale: cssWidth / (base.width * fraction)});
-        detailTextLayer.style.setProperty('--scale-factor', String(textViewport.scale));
-        detailTextLayer.style.width = textViewport.width + 'px';
-        detailTextLayer.style.height = textViewport.height + 'px';
-        detailTextLayer.style.left = mapped.half === 'right' ? (-cssWidth) + 'px' : '0px';
+        const textViewport = page.getViewport({scale:cssWidth/base.width});
+        detailTextLayer.style.setProperty('--scale-factor',String(textViewport.scale));
+        detailTextLayer.style.width = cssWidth+'px';
+        detailTextLayer.style.height = cssHeight+'px';
+        detailTextLayer.style.left = '0px';
         try {
             const textContent = await page.getTextContent();
             if (serial !== detailRenderSerial) return;
-            await pdfjsLib.renderTextLayer({
-                textContentSource: textContent,
-                container: detailTextLayer,
-                viewport: textViewport,
-                textDivs: []
-            }).promise;
-        } catch (e) { console.warn('PDF text layer unavailable:', e); }
-        document.getElementById('detailCounter').textContent = detailPage + ' / ' + totalPages;
-        document.getElementById('detailZoomLabel').textContent = Math.round(detailZoom * 100) + '%';
+            await pdfjsLib.renderTextLayer({textContentSource:textContent,container:detailTextLayer,viewport:textViewport,textDivs:[]}).promise;
+        } catch(e) { console.warn('PDF text selection unavailable:',e); }
     });
     return detailRenderPromise;
 }
 function openDetail(n) {
     if (!pdf || isAnimating) return;
-    detailPage = Math.max(1,Math.min(totalPages,n));
-    detailZoom = 0.4;
+    detailPage = spreadStart(n);
+    detailZoom = .4;
     detailOverlay.style.display = 'flex';
     detailScroll.scrollTop = 0;
+    detailScroll.scrollLeft = 0;
     renderDetail();
 }
 function closeDetail() {
     detailOverlay.style.display = 'none';
     ++detailRenderSerial;
-    if (detailRenderTask) detailRenderTask.cancel();
+    if(detailRenderTask) { try { detailRenderTask.cancel(); } catch(_) {} }
 }
-document.getElementById('zoomOpen').addEventListener('click',()=>openDetail(mode === 'front' ? 1 : mode === 'back' ? totalPages : leftPageNumber));
-leftPage.addEventListener('click',()=>{if(mode === 'open') openDetail(leftPageNumber)});
-rightPage.addEventListener('click',()=>{if(mode === 'open') openDetail(leftPageNumber+1)});
+function adjustDetailZoom(delta) {
+    detailZoom = Math.min(1.2,Math.max(0,Math.round((detailZoom+delta)*10)/10));
+    renderDetail();
+}
+document.getElementById('zoomOpen').addEventListener('click',()=>openDetail(mode==='front'?1:mode==='back'?totalPages:leftPageNumber));
+leftPage.addEventListener('click',()=>{if(mode==='open' && !String(window.getSelection()).trim())openDetail(leftPageNumber)});
+rightPage.addEventListener('click',()=>{if(mode==='open' && !String(window.getSelection()).trim())openDetail(leftPageNumber+1)});
 document.getElementById('detailClose').addEventListener('click',closeDetail);
-document.getElementById('detailPrev').addEventListener('click',()=>{if(detailPage>1){detailPage--;detailScroll.scrollTop=0;renderDetail()}});
-document.getElementById('detailNext').addEventListener('click',()=>{if(detailPage<totalPages){detailPage++;detailScroll.scrollTop=0;renderDetail()}});
-document.getElementById('detailMinus').addEventListener('click',()=>{detailZoom=Math.max(0,Math.round((detailZoom-.1)*10)/10);renderDetail()});
-document.getElementById('detailPlus').addEventListener('click',()=>{detailZoom=Math.min(1.2,Math.round((detailZoom+.1)*10)/10);renderDetail()});
-document.addEventListener('keydown',e=>{if(detailOverlay.style.display !== 'flex')return; if(['Escape','ArrowLeft','ArrowRight'].includes(e.key)){e.stopImmediatePropagation();e.preventDefault(); if(e.key==='Escape')closeDetail(); else document.getElementById(e.key==='ArrowLeft'?'detailPrev':'detailNext').click();}},true);
+document.getElementById('detailPrev').addEventListener('click',()=>{
+    if(detailPage>1){detailPage=detailPage===totalPages?totalPages-2:detailPage===2?1:detailPage-2;detailScroll.scrollTop=0;renderDetail()}
+});
+document.getElementById('detailNext').addEventListener('click',()=>{
+    if(detailPage<totalPages){detailPage=detailPage===1?2:Math.min(totalPages,detailPage+2);detailScroll.scrollTop=0;renderDetail()}
+});
+document.getElementById('detailMinus').addEventListener('click',()=>adjustDetailZoom(-.1));
+document.getElementById('detailPlus').addEventListener('click',()=>adjustDetailZoom(.1));
+// Mouse wheel zoom inside the viewer; hold Ctrl to use browser-native zoom instead.
+detailScroll.addEventListener('wheel',e=>{
+    if(e.ctrlKey) return;
+    e.preventDefault();
+    adjustDetailZoom(e.deltaY<0?.1:-.1);
+},{passive:false});
+document.addEventListener('keydown',e=>{
+    if(detailOverlay.style.display!=='flex')return;
+    if(['Escape','ArrowLeft','ArrowRight'].includes(e.key)){
+        e.stopImmediatePropagation();e.preventDefault();
+        if(e.key==='Escape')closeDetail();
+        else document.getElementById(e.key==='ArrowLeft'?'detailPrev':'detailNext').click();
+    }
+},true);
 
 start();
 
