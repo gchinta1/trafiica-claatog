@@ -964,6 +964,12 @@ button:disabled {
 #detailToolbar button {font-size:16px;width:auto;min-width:42px;padding:0 12px}
 #detailScroll {flex:1;overflow:auto;text-align:center;padding:22px;overscroll-behavior:contain}
 #detailCanvas {display:block;margin:0 auto;box-shadow:0 10px 32px #0009;max-width:none;background:white}
+#detailPageWrap {position:relative;margin:0 auto;overflow:hidden;background:white;box-shadow:0 10px 32px #0009}
+#detailCanvas {margin:0;box-shadow:none}
+#detailTextClip {position:absolute;inset:0;overflow:hidden;pointer-events:auto;user-select:text;-webkit-user-select:text}
+#detailTextLayer {position:absolute;top:0;left:0;transform-origin:0 0;line-height:1;text-align:left;user-select:text;-webkit-user-select:text}
+#detailTextLayer span, #detailTextLayer br {position:absolute;white-space:pre;color:transparent;transform-origin:0% 0%;cursor:text;user-select:text;-webkit-user-select:text}
+#detailTextLayer ::selection {background:rgba(48,128,245,.38)}
 #zoomOpen {width:auto;padding:0 15px;font-size:14px}
 @media(max-width:700px){#detailToolbar{gap:5px}#detailToolbar button{padding:0 8px;min-width:35px}#detailScroll{padding:8px}}
 </style>
@@ -1204,7 +1210,7 @@ button:disabled {
     <button id="detailPlus" aria-label="Zoom in">+</button>
     <button id="detailClose" aria-label="Close zoom">✕</button>
   </div>
-  <div id="detailScroll"><canvas id="detailCanvas"></canvas></div>
+  <div id="detailScroll"><div id="detailPageWrap"><canvas id="detailCanvas"></canvas><div id="detailTextClip"><div id="detailTextLayer" class="textLayer"></div></div></div></div>
 </div>
 <script>
 
@@ -3716,6 +3722,9 @@ async function start() {
 const detailOverlay = document.getElementById('detailOverlay');
 const detailCanvas = document.getElementById('detailCanvas');
 const detailScroll = document.getElementById('detailScroll');
+const detailPageWrap = document.getElementById('detailPageWrap');
+const detailTextClip = document.getElementById('detailTextClip');
+const detailTextLayer = document.getElementById('detailTextLayer');
 let detailPage = 1;
 let detailZoom = 0.4;
 let detailRenderSerial = 0;
@@ -3730,11 +3739,11 @@ function renderDetail() {
         if (!pdf || detailOverlay.style.display !== 'flex' || serial !== detailRenderSerial) return;
         document.getElementById('detailZoomLabel').textContent = Math.round(detailZoom * 100) + '%';
         if (detailZoom === 0) {
-            detailCanvas.style.display = 'none';
+            detailPageWrap.style.display = 'none';
             document.getElementById('detailCounter').textContent = detailPage + ' / ' + totalPages;
             return;
         }
-        detailCanvas.style.display = 'block';
+        detailPageWrap.style.display = 'block';
         const mapped = virtualPage(detailPage);
         const page = await pdf.getPage(mapped.source);
         if (serial !== detailRenderSerial) return;
@@ -3766,6 +3775,26 @@ function renderDetail() {
         const target = detailCanvas.getContext('2d', {alpha:false});
         const x = mapped.half === 'right' ? outputWidth : 0;
         target.drawImage(sourceCanvas, x, 0, outputWidth, outputHeight, 0, 0, outputWidth, outputHeight);
+        detailPageWrap.style.width = cssWidth + 'px';
+        detailPageWrap.style.height = cssHeight + 'px';
+        detailTextClip.style.width = cssWidth + 'px';
+        detailTextClip.style.height = cssHeight + 'px';
+        detailTextLayer.replaceChildren();
+        // Match the source PDF viewport exactly, then clip the other half.
+        const textViewport = page.getViewport({scale: cssWidth / (base.width * fraction)});
+        detailTextLayer.style.width = textViewport.width + 'px';
+        detailTextLayer.style.height = textViewport.height + 'px';
+        detailTextLayer.style.left = mapped.half === 'right' ? (-cssWidth) + 'px' : '0px';
+        try {
+            const textContent = await page.getTextContent();
+            if (serial !== detailRenderSerial) return;
+            await pdfjsLib.renderTextLayer({
+                textContentSource: textContent,
+                container: detailTextLayer,
+                viewport: textViewport,
+                textDivs: []
+            }).promise;
+        } catch (e) { console.warn('PDF text layer unavailable:', e); }
         document.getElementById('detailCounter').textContent = detailPage + ' / ' + totalPages;
         document.getElementById('detailZoomLabel').textContent = Math.round(detailZoom * 100) + '%';
     });
