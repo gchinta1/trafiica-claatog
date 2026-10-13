@@ -534,8 +534,8 @@ body {
 
     animation:
         flipNext
-        650ms
-        cubic-bezier(.42,0,.20,1)
+        850ms
+        cubic-bezier(.45,0,.16,1)
         forwards;
 }
 
@@ -543,7 +543,7 @@ body {
 #flipSheet.flip-next #flipShade {
     animation:
         flipShade
-        650ms
+        850ms
         ease-in-out
         forwards;
 }
@@ -560,8 +560,8 @@ body {
 
     animation:
         flipPrev
-        650ms
-        cubic-bezier(.42,0,.20,1)
+        850ms
+        cubic-bezier(.45,0,.16,1)
         forwards;
 }
 
@@ -569,7 +569,7 @@ body {
 #flipSheet.flip-prev #flipShade {
     animation:
         flipShade
-        650ms
+        850ms
         ease-in-out
         forwards;
 }
@@ -1242,13 +1242,13 @@ const PDF_FILE =
 /* Interior page flip */
 
 const TURN_TIME =
-    650;
+    850;
 
 
 /* Cover/open/close transition */
 
 const COVER_TIME =
-    650;
+    750;
 
 
 /* Thank-you delay after back cover */
@@ -2960,354 +2960,102 @@ restartCatalogue.addEventListener(
    NEXT
 ========================================================= */
 
-async function goNext() {
-
-    if (
-        isAnimating
-    ) {
-
-        return;
-
-    }
-
-
-    if (
-        mode === "front"
-    ) {
-
-        await openFromFront();
-
-        return;
-
-    }
-
-
-    if (
-        mode === "back" ||
-        mode === "thanks"
-    ) {
-
-        return;
-
-    }
-
-
-    const currentLeft =
-        leftPageNumber;
-
-
-    const currentRight =
-        currentLeft + 1;
-
-
-    const nextLeft =
-        currentLeft + 2;
-
-
-    const nextRight =
-        currentLeft + 3;
-
-
-    /*
-       End of catalogue
-    */
-
-    if (
-        nextLeft > totalPages
-    ) {
-
-        await closeToBack();
-
-        return;
-
-    }
-
-
-    isAnimating =
-        true;
-
-
-    prevButton.disabled =
-        true;
-
-
-    nextButton.disabled =
-        true;
-
-
-    /*
-       Moving page front:
-       current right page.
-    */
-
-    await renderPage(
-
-        currentRight,
-
-        flipFrontCanvas
-
-    );
-
-
-    /*
-       Moving page back:
-       next left page.
-    */
-
-    await renderPage(
-
-        nextLeft,
-
-        flipBackCanvas
-
-    );
-
-
-    /*
-       New right page underneath.
-    */
-
-    await renderPage(
-
-        nextRight,
-
-        rightCanvas
-
-    );
-
-
-    flipSheet.style.display =
-        "block";
-
-
-    flipSheet.classList.remove(
-        "flip-next"
-    );
-
-
-    void flipSheet.offsetWidth;
-
-
-    flipSheet.classList.add(
-        "flip-next"
-    );
-
-
-    /*
-       Change underlying left page
-       slightly before halfway.
-    */
-
-    setTimeout(
-
-        () => {
-
-            renderPage(
-
-                nextLeft,
-
-                leftCanvas
-
-            );
-
-        },
-
-        TURN_TIME * .48
-
-    );
-
-
-    await wait(
-        TURN_TIME
-    );
-
-
-    leftPageNumber =
-        nextLeft;
-
-
-    resetFlip();
-
-
-    updatePageControl();
-
-
-    prevButton.disabled =
-        false;
-
-
-    nextButton.disabled =
-        false;
-
-
-    isAnimating =
-        false;
-
+// Prepare complete target pages OFFSCREEN. Never draw a PDF into a visible
+// page during a turn: assigning canvas.width clears it instantly (white flash).
+async function prepareTurnPage(pageNumber) {
+    const buffer = document.createElement('canvas');
+    await renderPage(pageNumber, buffer);
+    return buffer;
 }
-
-
-/* =========================================================
-   PREVIOUS
-========================================================= */
-
-async function goPrevious() {
-
-    if (
-        isAnimating
-    ) {
-
-        return;
-
+function paintPrepared(buffer, target) {
+    // drawImage does not clear the existing canvas or expose a blank frame.
+    if (target.width !== buffer.width || target.height !== buffer.height) {
+        target.width = buffer.width;
+        target.height = buffer.height;
     }
-
-
-    if (
-        mode === "front" ||
-        mode === "thanks"
-    ) {
-
-        return;
-
-    }
-
-
-    if (
-        mode === "back"
-    ) {
-
-        await openFromBack();
-
-        return;
-
-    }
-
-
-    if (
-        leftPageNumber <= 2
-    ) {
-
-        await closeToFront();
-
-        return;
-
-    }
-
-
-    isAnimating =
-        true;
-
-
-    prevButton.disabled =
-        true;
-
-
-    nextButton.disabled =
-        true;
-
-
-    const currentLeft =
-        leftPageNumber;
-
-
-    const previousLeft =
-        currentLeft - 2;
-
-
-    const previousRight =
-        currentLeft - 1;
-
-
-    await renderPage(
-
-        currentLeft,
-
-        flipFrontCanvas
-
-    );
-
-
-    await renderPage(
-
-        previousRight,
-
-        flipBackCanvas
-
-    );
-
-
-    await renderPage(
-
-        previousLeft,
-
-        leftCanvas
-
-    );
-
-
-    flipSheet.style.display =
-        "block";
-
-
-    flipSheet.classList.remove(
-        "flip-prev"
-    );
-
-
-    void flipSheet.offsetWidth;
-
-
-    flipSheet.classList.add(
-        "flip-prev"
-    );
-
-
-    setTimeout(
-
-        () => {
-
-            renderPage(
-
-                previousRight,
-
-                rightCanvas
-
-            );
-
-        },
-
-        TURN_TIME * .48
-
-    );
-
-
-    await wait(
-        TURN_TIME
-    );
-
-
-    leftPageNumber =
-        previousLeft;
-
-
-    resetFlip();
-
-
-    updatePageControl();
-
-
-    prevButton.disabled =
-        false;
-
-
-    nextButton.disabled =
-        false;
-
-
-    isAnimating =
-        false;
-
+    target.style.width = displayWidth + 'px';
+    target.style.height = displayHeight + 'px';
+    target.getContext('2d', {alpha:false}).drawImage(buffer, 0, 0);
 }
-
+async function updateTurnText(pageNumber, targetCanvas) {
+    const id = targetCanvas === leftCanvas ? 'leftTextLayer' : 'rightTextLayer';
+    const layer = document.getElementById(id);
+    if (!layer) return;
+    const token = (layer._renderToken || 0) + 1;
+    layer._renderToken = token;
+    const mapped = virtualPage(pageNumber);
+    const page = await pdf.getPage(mapped.source);
+    const base = page.getViewport({scale:1});
+    const sourceWidth = mapped.half ? base.width/2 : base.width;
+    const viewport = page.getViewport({scale:displayWidth/sourceWidth});
+    const inner = document.createElement('div');
+    inner.className = 'catalogueTextInner';
+    inner.style.width = viewport.width + 'px';
+    inner.style.height = viewport.height + 'px';
+    inner.style.left = (mapped.half === 'right' ? -displayWidth : 0) + 'px';
+    inner.style.setProperty('--scale-factor', String(viewport.scale));
+    try {
+        const content = await page.getTextContent();
+        await pdfjsLib.renderTextLayer({textContentSource:content,container:inner,viewport,textDivs:[]}).promise;
+        if (layer._renderToken === token) layer.replaceChildren(inner);
+    } catch(err) { console.warn('Text layer:',err); }
+}
+async function turnPrepared(direction) {
+    if (isAnimating) return;
+    if (direction === 'next') {
+        if (mode === 'front') return openFromFront();
+        if (mode === 'back' || mode === 'thanks') return;
+        if (leftPageNumber + 2 > totalPages) return closeToBack();
+    } else {
+        if (mode === 'front' || mode === 'thanks') return;
+        if (mode === 'back') return openFromBack();
+        if (leftPageNumber <= 2) return closeToFront();
+    }
+    isAnimating = true;
+    prevButton.disabled = nextButton.disabled = true;
+    const oldLeft = leftPageNumber;
+    const newLeft = oldLeft + (direction === 'next' ? 2 : -2);
+    try {
+        const [newLeftBuffer, newRightBuffer, frontBuffer, backBuffer] = await Promise.all([
+            prepareTurnPage(newLeft),
+            prepareTurnPage(newLeft+1),
+            prepareTurnPage(direction === 'next' ? oldLeft+1 : oldLeft),
+            prepareTurnPage(direction === 'next' ? newLeft : newLeft+1)
+        ]);
+        // Both static pages retain their ORIGINAL images until the sheet covers
+        // the center of the book. No PDF rendering takes place mid-animation.
+        paintPrepared(frontBuffer, flipFrontCanvas);
+        paintPrepared(backBuffer, flipBackCanvas);
+        flipSheet.classList.remove('flip-next','flip-prev');
+        flipSheet.style.display = 'block';
+        void flipSheet.offsetWidth;
+        flipSheet.classList.add(direction === 'next' ? 'flip-next' : 'flip-prev');
+        await wait(TURN_TIME * .52);
+        // One synchronous canvas commit: no blank frame between the spreads.
+        paintPrepared(newLeftBuffer, leftCanvas);
+        paintPrepared(newRightBuffer, rightCanvas);
+        // The text layer is hidden while changing, then rebuilt independently.
+        document.getElementById('leftTextLayer').replaceChildren();
+        document.getElementById('rightTextLayer').replaceChildren();
+        await wait(TURN_TIME * .48 + 35);
+        resetFlip();
+        leftPageNumber = newLeft;
+        updatePageControl();
+        void Promise.all([
+            updateTurnText(newLeft,leftCanvas),
+            updateTurnText(newLeft+1,rightCanvas)
+        ]);
+    } catch(err) {
+        console.error('Page turn:',err);
+        resetFlip();
+        await renderSpread(oldLeft);
+    } finally {
+        prevButton.disabled = nextButton.disabled = false;
+        isAnimating = false;
+    }
+}
+async function goNext() { return turnPrepared('next'); }
+async function goPrevious() { return turnPrepared('previous'); }
 
 /* =========================================================
    GO DIRECTLY TO PAGE
