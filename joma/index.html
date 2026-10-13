@@ -1,7 +1,4 @@
 
-
-
-
 <!doctype html>
 <html lang="en">
 
@@ -3556,15 +3553,24 @@ function renderDetail() {
         sourceCanvas.width = outputWidth; sourceCanvas.height = outputHeight;
         const ctx = sourceCanvas.getContext('2d',{alpha:false});
         ctx.fillStyle='#fff';ctx.fillRect(0,0,outputWidth,outputHeight);
+        // Render each PDF page on its own canvas. PDF.js clears its target
+        // canvas at render start, so rendering both into the same canvas
+        // causes the second page to erase the first (blank left page).
         let x = 0;
         for (let i=0;i<pages.length;i++) {
             if(serial!==detailRenderSerial)return;
             const scale=outputWidth/totalBaseWidth;
-            const viewport=pages[i].getViewport({scale,offsetX:x});
-            detailRenderTask=pages[i].render({canvasContext:ctx,viewport});
+            const viewport=pages[i].getViewport({scale});
+            const pageCanvas=document.createElement('canvas');
+            pageCanvas.width=Math.max(1,Math.round(viewport.width));
+            pageCanvas.height=Math.max(1,Math.round(viewport.height));
+            const pageCtx=pageCanvas.getContext('2d',{alpha:false});
+            detailRenderTask=pages[i].render({canvasContext:pageCtx,viewport});
             try { await detailRenderTask.promise; }
             catch(e) { if(e.name!=='RenderingCancelledException')console.error('JOMA zoom render:',e);return; }
             finally { detailRenderTask=null; }
+            if(serial!==detailRenderSerial)return;
+            ctx.drawImage(pageCanvas,Math.round(x),0);
             x += bases[i].width*scale;
         }
         if(serial!==detailRenderSerial || detailOverlay.style.display!=='flex')return;
