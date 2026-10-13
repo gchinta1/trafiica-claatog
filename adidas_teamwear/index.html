@@ -3854,8 +3854,32 @@ function adjustDetailZoom(delta) {
     renderDetail();
 }
 document.getElementById('zoomOpen').addEventListener('click',()=>openDetail(mode==='front'?1:mode==='back'?totalPages:leftPageNumber));
-leftPage.addEventListener('click',()=>{if(mode==='open' && !String(window.getSelection()).trim())openDetail(leftPageNumber)});
-rightPage.addEventListener('click',()=>{if(mode==='open' && !String(window.getSelection()).trim())openDetail(leftPageNumber+1)});
+// Normal catalogue: click left/right to turn pages; drag to highlight text.
+// Zoom opens only through the dedicated Zoom + button.
+let selectionDrag = false;
+let pointerStart = null;
+for (const pageElement of [leftPage, rightPage]) {
+    pageElement.addEventListener('pointerdown', e => {
+        if (e.button !== 0) return;
+        pointerStart = {x:e.clientX, y:e.clientY};
+        selectionDrag = false;
+    }, true);
+    pageElement.addEventListener('pointermove', e => {
+        if (pointerStart && Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>5) selectionDrag = true;
+    }, true);
+    pageElement.addEventListener('pointerup', () => { pointerStart = null; }, true);
+    pageElement.addEventListener('click', e => {
+        if (mode !== 'open') return;
+        if (selectionDrag || String(window.getSelection()).trim()) {
+            selectionDrag = false;
+            return;
+        }
+        if (e.target.closest('button, a, input')) return;
+        if (pageElement === leftPage) goPrevious();
+        else goNext();
+    });
+}
+
 document.getElementById('detailClose').addEventListener('click',closeDetail);
 document.getElementById('detailPrev').addEventListener('click',()=>{
     if(detailPage>1){detailPage=detailPage===totalPages?totalPages-2:detailPage===2?1:detailPage-2;detailScroll.scrollTop=0;renderDetail()}
