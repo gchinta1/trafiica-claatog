@@ -3728,6 +3728,13 @@ function renderDetail() {
     // Serializing renders prevents two PDF.js tasks from painting the same canvas.
     detailRenderPromise = detailRenderPromise.catch(()=>{}).then(async () => {
         if (!pdf || detailOverlay.style.display !== 'flex' || serial !== detailRenderSerial) return;
+        document.getElementById('detailZoomLabel').textContent = Math.round(detailZoom * 100) + '%';
+        if (detailZoom === 0) {
+            detailCanvas.style.display = 'none';
+            document.getElementById('detailCounter').textContent = detailPage + ' / ' + totalPages;
+            return;
+        }
+        detailCanvas.style.display = 'block';
         const mapped = virtualPage(detailPage);
         const page = await pdf.getPage(mapped.source);
         if (serial !== detailRenderSerial) return;
@@ -3735,7 +3742,7 @@ function renderDetail() {
         const fraction = mapped.half ? .5 : 1;
         const pageRatio = (base.width * fraction) / base.height;
         const available = Math.max(240, detailScroll.clientWidth - 44);
-        const cssWidth = Math.max(240, Math.round(available * detailZoom));
+        const cssWidth = Math.max(1, Math.round(available * detailZoom));
         const cssHeight = Math.round(cssWidth / pageRatio);
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         // Avoid enormous PDF canvas allocations, particularly on high-DPI screens.
@@ -3783,8 +3790,8 @@ rightPage.addEventListener('click',()=>{if(mode === 'open') openDetail(leftPageN
 document.getElementById('detailClose').addEventListener('click',closeDetail);
 document.getElementById('detailPrev').addEventListener('click',()=>{if(detailPage>1){detailPage--;detailScroll.scrollTop=0;renderDetail()}});
 document.getElementById('detailNext').addEventListener('click',()=>{if(detailPage<totalPages){detailPage++;detailScroll.scrollTop=0;renderDetail()}});
-document.getElementById('detailMinus').addEventListener('click',()=>{detailZoom=Math.max(.5,detailZoom-.25);renderDetail()});
-document.getElementById('detailPlus').addEventListener('click',()=>{detailZoom=Math.min(3,detailZoom+.25);renderDetail()});
+document.getElementById('detailMinus').addEventListener('click',()=>{detailZoom=Math.max(0,Math.round((detailZoom-.1)*10)/10);renderDetail()});
+document.getElementById('detailPlus').addEventListener('click',()=>{detailZoom=Math.min(1.2,Math.round((detailZoom+.1)*10)/10);renderDetail()});
 document.addEventListener('keydown',e=>{if(detailOverlay.style.display !== 'flex')return; if(['Escape','ArrowLeft','ArrowRight'].includes(e.key)){e.stopImmediatePropagation();e.preventDefault(); if(e.key==='Escape')closeDetail(); else document.getElementById(e.key==='ArrowLeft'?'detailPrev':'detailNext').click();}},true);
 
 start();
