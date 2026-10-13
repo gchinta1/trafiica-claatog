@@ -1650,7 +1650,7 @@ async function renderPage(
 
     const mapped = virtualPage(pageNumber);
     const page = await pdf.getPage(mapped.source);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 3), 3.5);
     const base = page.getViewport({scale:1});
     const sourceWidth = mapped.half ? base.width / 2 : base.width;
     const scale = displayWidth * dpr / sourceWidth;
@@ -3799,8 +3799,8 @@ function renderDetail() {
         const available = Math.max(240, detailScroll.clientWidth - 44);
         const cssWidth = Math.max(1,Math.round(available*detailZoom));
         const cssHeight = Math.max(1,Math.round(cssWidth*base.height/base.width));
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const rasterScale = Math.min(dpr, 4096/Math.max(cssWidth,cssHeight));
+        const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 3), 3.5);
+        const rasterScale = Math.min(dpr, 6144/Math.max(cssWidth,cssHeight));
         const outputWidth = Math.max(1,Math.round(cssWidth*rasterScale));
         const outputHeight = Math.max(1,Math.round(cssHeight*rasterScale));
         const sourceCanvas = document.createElement('canvas');
