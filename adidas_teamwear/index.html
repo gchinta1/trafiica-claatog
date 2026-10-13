@@ -3712,7 +3712,7 @@ async function start() {
 
 
 
-/* High-resolution page detail: independent of the animated book. */
+/* Zoom viewer: render each PDF source to an isolated canvas, then crop its half. */
 const detailOverlay = document.getElementById('detailOverlay');
 const detailCanvas = document.getElementById('detailCanvas');
 const detailScroll = document.getElementById('detailScroll');
@@ -3720,29 +3720,49 @@ let detailPage = 1;
 let detailZoom = 1;
 let detailRenderSerial = 0;
 let detailRenderTask = null;
-async function renderDetail() {
-    if (!pdf || detailOverlay.style.display !== 'flex') return;
+let detailRenderPromise = Promise.resolve();
+
+function renderDetail() {
     const serial = ++detailRenderSerial;
-    if (detailRenderTask) { try { detailRenderTask.cancel(); await detailRenderTask.promise; } catch (_) {} detailRenderTask = null; }
-    const mapped = virtualPage(detailPage);
-    const page = await pdf.getPage(mapped.source);
-    if (serial !== detailRenderSerial) return;
-    const base = page.getViewport({scale:1});
-    const sourceWidth = mapped.half ? base.width / 2 : base.width;
-    const available = Math.max(260, detailScroll.clientWidth - 44);
-    const width = Math.max(260, available * detailZoom);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    const scale = width / sourceWidth * dpr;
-    const viewport = page.getViewport({scale, offsetX:mapped.half === 'right' ? -base.width*scale/2 : 0});
-    detailCanvas.width = Math.round(width*dpr);
-    detailCanvas.height = Math.round(width*base.height/sourceWidth*dpr);
-    detailCanvas.style.width = Math.round(width) + 'px';
-    detailCanvas.style.height = Math.round(width*base.height/sourceWidth) + 'px';
-    document.getElementById('detailCounter').textContent = detailPage + ' / ' + totalPages;
-    document.getElementById('detailZoomLabel').textContent = Math.round(detailZoom * 100) + '%';
-    detailRenderTask = page.render({canvasContext:detailCanvas.getContext('2d', {alpha:false}), viewport});
-    try { await detailRenderTask.promise; } catch(e) { if (e.name !== 'RenderingCancelledException') console.error(e); }
-    finally { if (serial === detailRenderSerial) detailRenderTask = null; }
+    if (detailRenderTask) { try { detailRenderTask.cancel(); } catch (_) {} }
+    // Serializing renders prevents two PDF.js tasks from painting the same canvas.
+    detailRenderPromise = detailRenderPromise.catch(()=>{}).then(async () => {
+        if (!pdf || detailOverlay.style.display !== 'flex' || serial !== detailRenderSerial) return;
+        const mapped = virtualPage(detailPage);
+        const page = await pdf.getPage(mapped.source);
+        if (serial !== detailRenderSerial) return;
+        const base = page.getViewport({scale:1});
+        const fraction = mapped.half ? .5 : 1;
+        const pageRatio = (base.width * fraction) / base.height;
+        const available = Math.max(240, detailScroll.clientWidth - 44);
+        const cssWidth = Math.max(240, Math.round(available * detailZoom));
+        const cssHeight = Math.round(cssWidth / pageRatio);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        // Avoid enormous PDF canvas allocations, particularly on high-DPI screens.
+        const rasterScale = Math.min(dpr, 4096 / Math.max(cssWidth / fraction, cssHeight));
+        const outputWidth = Math.max(1, Math.round(cssWidth * rasterScale));
+        const outputHeight = Math.max(1, Math.round(cssHeight * rasterScale));
+        const sourceCanvas = document.createElement('canvas');
+        sourceCanvas.width = mapped.half ? outputWidth * 2 : outputWidth;
+        sourceCanvas.height = outputHeight;
+        const viewport = page.getViewport({scale: sourceCanvas.width / base.width});
+        const ctx = sourceCanvas.getContext('2d', {alpha:false});
+        detailRenderTask = page.render({canvasContext:ctx, viewport});
+        try { await detailRenderTask.promise; }
+        catch (e) { if (e.name !== 'RenderingCancelledException') console.error('Zoom render:', e); return; }
+        finally { detailRenderTask = null; }
+        if (serial !== detailRenderSerial || detailOverlay.style.display !== 'flex') return;
+        detailCanvas.width = outputWidth;
+        detailCanvas.height = outputHeight;
+        detailCanvas.style.width = cssWidth + 'px';
+        detailCanvas.style.height = cssHeight + 'px';
+        const target = detailCanvas.getContext('2d', {alpha:false});
+        const x = mapped.half === 'right' ? outputWidth : 0;
+        target.drawImage(sourceCanvas, x, 0, outputWidth, outputHeight, 0, 0, outputWidth, outputHeight);
+        document.getElementById('detailCounter').textContent = detailPage + ' / ' + totalPages;
+        document.getElementById('detailZoomLabel').textContent = Math.round(detailZoom * 100) + '%';
+    });
+    return detailRenderPromise;
 }
 function openDetail(n) {
     if (!pdf || isAnimating) return;
@@ -3763,7 +3783,7 @@ rightPage.addEventListener('click',()=>{if(mode === 'open') openDetail(leftPageN
 document.getElementById('detailClose').addEventListener('click',closeDetail);
 document.getElementById('detailPrev').addEventListener('click',()=>{if(detailPage>1){detailPage--;detailScroll.scrollTop=0;renderDetail()}});
 document.getElementById('detailNext').addEventListener('click',()=>{if(detailPage<totalPages){detailPage++;detailScroll.scrollTop=0;renderDetail()}});
-document.getElementById('detailMinus').addEventListener('click',()=>{detailZoom=Math.max(.7,detailZoom-.25);renderDetail()});
+document.getElementById('detailMinus').addEventListener('click',()=>{detailZoom=Math.max(.5,detailZoom-.25);renderDetail()});
 document.getElementById('detailPlus').addEventListener('click',()=>{detailZoom=Math.min(3,detailZoom+.25);renderDetail()});
 document.addEventListener('keydown',e=>{if(detailOverlay.style.display !== 'flex')return; if(['Escape','ArrowLeft','ArrowRight'].includes(e.key)){e.stopImmediatePropagation();e.preventDefault(); if(e.key==='Escape')closeDetail(); else document.getElementById(e.key==='ArrowLeft'?'detailPrev':'detailNext').click();}},true);
 
