@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 
@@ -956,6 +957,15 @@ button:disabled {
 
 }
 
+
+/* Detail viewer: scrollable high-resolution single PDF page */
+#detailOverlay {position:fixed;inset:0;z-index:5000;background:#151515;display:none;flex-direction:column;color:white}
+#detailToolbar {height:58px;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:12px;background:#101010;border-bottom:1px solid #444}
+#detailToolbar button {font-size:16px;width:auto;min-width:42px;padding:0 12px}
+#detailScroll {flex:1;overflow:auto;text-align:center;padding:22px;overscroll-behavior:contain}
+#detailCanvas {display:block;margin:0 auto;box-shadow:0 10px 32px #0009;max-width:none;background:white}
+#zoomOpen {width:auto;padding:0 15px;font-size:14px}
+@media(max-width:700px){#detailToolbar{gap:5px}#detailToolbar button{padding:0 8px;min-width:35px}#detailScroll{padding:8px}}
 </style>
 
 </head>
@@ -1179,9 +1189,23 @@ button:disabled {
     </button>
 
 
+<button id="zoomOpen" type="button" aria-label="Zoom catalogue page">Zoom +</button>
 </footer>
 
 
+
+<div id="detailOverlay" role="dialog" aria-modal="true" aria-label="Catalogue page zoom">
+  <div id="detailToolbar">
+    <button id="detailPrev" aria-label="Previous detail page">‹</button>
+    <span id="detailCounter" style="font-size:13px;min-width:70px;text-align:center"></span>
+    <button id="detailNext" aria-label="Next detail page">›</button>
+    <button id="detailMinus" aria-label="Zoom out">−</button>
+    <span id="detailZoomLabel" style="font-size:13px;min-width:45px;text-align:center">100%</span>
+    <button id="detailPlus" aria-label="Zoom in">+</button>
+    <button id="detailClose" aria-label="Close zoom">✕</button>
+  </div>
+  <div id="detailScroll"><canvas id="detailCanvas"></canvas></div>
+</div>
 <script>
 
 /* =========================================================
@@ -1196,7 +1220,7 @@ button:disabled {
 */
 
 const PDF_FILE =
-    "./ADIDAS_Teamwear_Catalog_2026.pdf?v=1";
+    "./ADIDAS_Teamwear_Catalog_2026.pdf?v=3";
 
 
 /* Interior page flip */
@@ -1578,6 +1602,13 @@ function positionBooks() {
    RENDER PDF PAGE
 ========================================================= */
 
+/* Virtual single pages: original PDF has portrait covers and landscape spreads. */
+function virtualPage(n) {
+    if (n === 1) return {source:1, half:null};
+    if (n === totalPages) return {source:pdf.numPages, half:null};
+    return {source:Math.floor((n-2)/2)+2, half:(n%2===0 ? 'left' : 'right')};
+}
+
 async function renderPage(
     pageNumber,
     canvas
@@ -1601,65 +1632,22 @@ async function renderPage(
     }
 
 
-    const page =
-        await pdf.getPage(
-            pageNumber
-        );
-
-
-    const dpr =
-        Math.min(
-
-            window.devicePixelRatio || 1,
-
-            2
-
-        );
-
-
-    const baseViewport =
-        page.getViewport({
-
-            scale: 1
-
-        });
-
-
-    const scale =
-        (
-            displayWidth *
-            dpr
-        ) /
-        baseViewport.width;
-
-
-    const viewport =
-        page.getViewport({
-
-            scale: scale
-
-        });
-
-
-    canvas.width =
-        Math.round(
-            viewport.width
-        );
-
-
-    canvas.height =
-        Math.round(
-            viewport.height
-        );
-
-
-    canvas.style.width =
-        displayWidth + "px";
-
-
-    canvas.style.height =
-        displayHeight + "px";
-
+    const mapped = virtualPage(pageNumber);
+    const page = await pdf.getPage(mapped.source);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const base = page.getViewport({scale:1});
+    const sourceWidth = mapped.half ? base.width / 2 : base.width;
+    const scale = displayWidth * dpr / sourceWidth;
+    const widthPx = Math.round(displayWidth * dpr);
+    const heightPx = Math.round(displayHeight * dpr);
+    const viewport = page.getViewport({
+        scale,
+        offsetX: mapped.half === 'right' ? -base.width * scale / 2 : 0
+    });
+    canvas.width = widthPx;
+    canvas.height = heightPx;
+    canvas.style.width = displayWidth + 'px';
+    canvas.style.height = displayHeight + 'px';
 
     const ctx =
         canvas.getContext(
@@ -3638,7 +3626,7 @@ async function start() {
 
 
         totalPages =
-            pdf.numPages;
+            (pdf.numPages - 2) * 2 + 2;
 
 
         pageInput.max =
@@ -3722,6 +3710,62 @@ async function start() {
 
 }
 
+
+
+/* High-resolution page detail: independent of the animated book. */
+const detailOverlay = document.getElementById('detailOverlay');
+const detailCanvas = document.getElementById('detailCanvas');
+const detailScroll = document.getElementById('detailScroll');
+let detailPage = 1;
+let detailZoom = 1;
+let detailRenderSerial = 0;
+let detailRenderTask = null;
+async function renderDetail() {
+    if (!pdf || detailOverlay.style.display !== 'flex') return;
+    const serial = ++detailRenderSerial;
+    if (detailRenderTask) { try { detailRenderTask.cancel(); await detailRenderTask.promise; } catch (_) {} detailRenderTask = null; }
+    const mapped = virtualPage(detailPage);
+    const page = await pdf.getPage(mapped.source);
+    if (serial !== detailRenderSerial) return;
+    const base = page.getViewport({scale:1});
+    const sourceWidth = mapped.half ? base.width / 2 : base.width;
+    const available = Math.max(260, detailScroll.clientWidth - 44);
+    const width = Math.max(260, available * detailZoom);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    const scale = width / sourceWidth * dpr;
+    const viewport = page.getViewport({scale, offsetX:mapped.half === 'right' ? -base.width*scale/2 : 0});
+    detailCanvas.width = Math.round(width*dpr);
+    detailCanvas.height = Math.round(width*base.height/sourceWidth*dpr);
+    detailCanvas.style.width = Math.round(width) + 'px';
+    detailCanvas.style.height = Math.round(width*base.height/sourceWidth) + 'px';
+    document.getElementById('detailCounter').textContent = detailPage + ' / ' + totalPages;
+    document.getElementById('detailZoomLabel').textContent = Math.round(detailZoom * 100) + '%';
+    detailRenderTask = page.render({canvasContext:detailCanvas.getContext('2d', {alpha:false}), viewport});
+    try { await detailRenderTask.promise; } catch(e) { if (e.name !== 'RenderingCancelledException') console.error(e); }
+    finally { if (serial === detailRenderSerial) detailRenderTask = null; }
+}
+function openDetail(n) {
+    if (!pdf || isAnimating) return;
+    detailPage = Math.max(1,Math.min(totalPages,n));
+    detailZoom = 1;
+    detailOverlay.style.display = 'flex';
+    detailScroll.scrollTop = 0;
+    renderDetail();
+}
+function closeDetail() {
+    detailOverlay.style.display = 'none';
+    ++detailRenderSerial;
+    if (detailRenderTask) detailRenderTask.cancel();
+}
+document.getElementById('zoomOpen').addEventListener('click',()=>openDetail(mode === 'front' ? 1 : mode === 'back' ? totalPages : leftPageNumber));
+leftPage.addEventListener('click',()=>{if(mode === 'open') openDetail(leftPageNumber)});
+rightPage.addEventListener('click',()=>{if(mode === 'open') openDetail(leftPageNumber+1)});
+document.getElementById('detailClose').addEventListener('click',closeDetail);
+document.getElementById('detailPrev').addEventListener('click',()=>{if(detailPage>1){detailPage--;detailScroll.scrollTop=0;renderDetail()}});
+document.getElementById('detailNext').addEventListener('click',()=>{if(detailPage<totalPages){detailPage++;detailScroll.scrollTop=0;renderDetail()}});
+document.getElementById('detailMinus').addEventListener('click',()=>{detailZoom=Math.max(.7,detailZoom-.25);renderDetail()});
+document.getElementById('detailPlus').addEventListener('click',()=>{detailZoom=Math.min(3,detailZoom+.25);renderDetail()});
+document.addEventListener('keydown',e=>{if(detailOverlay.style.display !== 'flex')return; if(['Escape','ArrowLeft','ArrowRight'].includes(e.key)){e.stopImmediatePropagation();e.preventDefault(); if(e.key==='Escape')closeDetail(); else document.getElementById(e.key==='ArrowLeft'?'detailPrev':'detailNext').click();}},true);
 
 start();
 
