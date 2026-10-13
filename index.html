@@ -2958,6 +2958,27 @@ restartCatalogue.addEventListener(
    NEXT
 ========================================================= */
 
+// Pre-render the next static page offscreen so the live canvas never
+// gets cleared in the middle of a 3D page-turn animation.
+async function prepareTurnPage(pageNumber) {
+    const buffer = document.createElement('canvas');
+    await renderPage(pageNumber, buffer);
+    return buffer;
+}
+function commitTurnPage(buffer, target) {
+    // Draw into the existing canvas without changing its dimensions.
+    const ctx = target.getContext('2d', {alpha:false});
+    if (target.width !== buffer.width || target.height !== buffer.height) {
+        target.width = buffer.width;
+        target.height = buffer.height;
+    }
+    ctx.drawImage(buffer, 0, 0);
+}
+async function refreshTurnText(pageNumber, canvas) {
+    try { await renderMainTextLayer(await pdf.getPage(pageNumber), canvas); }
+    catch (err) { console.warn('Text layer update:', err); }
+}
+
 async function goNext() {
 
     if (
@@ -3074,6 +3095,11 @@ async function goNext() {
     );
 
 
+    // Prepare the hidden replacement page BEFORE the animation starts.
+    const turnBuffer = await prepareTurnPage(
+        typeof nextLeft !== 'undefined' ? nextLeft : previousRight
+    );
+
     flipSheet.style.display =
         "block";
 
@@ -3096,29 +3122,19 @@ async function goNext() {
        slightly before halfway.
     */
 
-    setTimeout(
-
-        () => {
-
-            renderPage(
-
-                nextLeft,
-
-                leftCanvas
-
-            );
-
-        },
-
-        TURN_TIME * .46
-
-    );
+    const midpointSwap = setTimeout(() => {
+        commitTurnPage(turnBuffer, leftCanvas);
+    }, TURN_TIME * .50);
 
 
     await wait(
-        TURN_TIME
+        TURN_TIME + 40
     );
 
+    clearTimeout(midpointSwap);
+    commitTurnPage(turnBuffer, typeof nextLeft !== 'undefined' ? leftCanvas : rightCanvas);
+    await refreshTurnText(typeof nextLeft !== 'undefined' ? nextLeft : previousRight,
+                          typeof nextLeft !== 'undefined' ? leftCanvas : rightCanvas);
 
     leftPageNumber =
         nextLeft;
@@ -3242,6 +3258,11 @@ async function goPrevious() {
     );
 
 
+    // Prepare the hidden replacement page BEFORE the animation starts.
+    const turnBuffer = await prepareTurnPage(
+        typeof nextLeft !== 'undefined' ? nextLeft : previousRight
+    );
+
     flipSheet.style.display =
         "block";
 
@@ -3259,29 +3280,19 @@ async function goPrevious() {
     );
 
 
-    setTimeout(
-
-        () => {
-
-            renderPage(
-
-                previousRight,
-
-                rightCanvas
-
-            );
-
-        },
-
-        TURN_TIME * .46
-
-    );
+    const midpointSwap = setTimeout(() => {
+        commitTurnPage(turnBuffer, rightCanvas);
+    }, TURN_TIME * .50);
 
 
     await wait(
-        TURN_TIME
+        TURN_TIME + 40
     );
 
+    clearTimeout(midpointSwap);
+    commitTurnPage(turnBuffer, typeof nextLeft !== 'undefined' ? leftCanvas : rightCanvas);
+    await refreshTurnText(typeof nextLeft !== 'undefined' ? nextLeft : previousRight,
+                          typeof nextLeft !== 'undefined' ? leftCanvas : rightCanvas);
 
     leftPageNumber =
         previousLeft;
