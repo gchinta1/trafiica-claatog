@@ -972,6 +972,13 @@ button:disabled {
 .zoomTextLayer span{position:absolute;white-space:pre;transform-origin:0 0;color:transparent;cursor:text;user-select:text;-webkit-user-select:text}
 .zoomTextLayer ::selection{background:rgba(20,110,255,.38);color:transparent}
 #pdfZoomOverlay button{touch-action:manipulation}
+
+/* Selectable PDF text in the main flipbook, not only the zoom overlay. */
+.mainTextLayer{position:absolute;inset:0;z-index:6;overflow:hidden;pointer-events:auto;user-select:text;-webkit-user-select:text;line-height:1}
+.mainTextLayer span{position:absolute;white-space:pre;color:transparent;cursor:text;user-select:text;-webkit-user-select:text;transform-origin:0 0}
+.mainTextLayer ::selection{background:rgba(35,116,255,.45);color:transparent}
+#closedBook .mainTextLayer{z-index:4}
+
 </style>
 
 </head>
@@ -1605,6 +1612,46 @@ function positionBooks() {
    RENDER PDF PAGE
 ========================================================= */
 
+async function renderMainTextLayer(page, canvas) {
+    const parent = canvas.parentElement;
+    if (!parent) return;
+    let layer = parent.querySelector(':scope > .mainTextLayer');
+    if (!layer) {
+        layer = document.createElement('div');
+        layer.className = 'mainTextLayer';
+        parent.appendChild(layer);
+    }
+    const request = (layer._request || 0) + 1;
+    layer._request = request;
+    layer.replaceChildren();
+    try {
+        const content = await page.getTextContent();
+        if (layer._request !== request) return;
+        const base = page.getViewport({scale:1});
+        const view = page.getViewport({scale:displayWidth/base.width});
+        const fragment = document.createDocumentFragment();
+        const measure = document.createElement('canvas').getContext('2d');
+        for (const item of content.items) {
+            if (!item.str || !item.transform) continue;
+            const tx = pdfjsLib.Util.transform(view.transform,item.transform);
+            const fontHeight = Math.hypot(tx[2],tx[3]);
+            if (!fontHeight) continue;
+            const angle = Math.atan2(tx[1],tx[0]);
+            const span = document.createElement('span');
+            span.textContent = item.str;
+            span.style.left = tx[4] + 'px';
+            span.style.top = (tx[5]-fontHeight) + 'px';
+            span.style.fontSize = fontHeight + 'px';
+            measure.font = fontHeight + 'px sans-serif';
+            const measured = measure.measureText(item.str).width || 1;
+            const expected = (item.width || 0) * view.scale;
+            span.style.transform = `rotate(${angle}rad) scaleX(${expected>0?expected/measured:1})`;
+            fragment.appendChild(span);
+        }
+        layer.appendChild(fragment);
+    } catch (err) { console.warn('Main text layer:',err); }
+}
+
 async function renderPage(
     pageNumber,
     canvas
@@ -1726,6 +1773,11 @@ async function renderPage(
             viewport
 
     }).promise;
+
+    // Rebuild the transparent, selectable text layer at the displayed page size.
+    if (canvas === closedCanvas || canvas === leftCanvas || canvas === rightCanvas) {
+        await renderMainTextLayer(page, canvas);
+    }
 
 }
 
@@ -3842,15 +3894,52 @@ document.getElementById('pdfZoomMinus').addEventListener('click',()=>zoomStep(-1
 document.getElementById('pdfZoomPrev').addEventListener('click',()=>turnZoom(-1));
 document.getElementById('pdfZoomNext').addEventListener('click',()=>turnZoom(1));
 zoomArea.addEventListener('wheel',e=>{e.preventDefault();zoomStep(e.deltaY<0?10:-10);},{passive:false});
+
+// Mouse-wheel zoom directly on the main catalogue (no Zoom button needed).
+// Transform the entire viewer so click-to-turn and PDF text selection remain usable.
+let mainZoom = 1;
+const MAIN_MIN_ZOOM = 0.5;
+const MAIN_MAX_ZOOM = 2.5;
+viewer.style.transformOrigin = 'center center';
+viewer.style.transition = 'transform 110ms ease-out';
+stage.addEventListener('wheel', event => {
+  if (zoomOverlay.classList.contains('active') || !pdf || mode === 'thanks') return;
+  if (!stage.contains(event.target)) return;
+  event.preventDefault();
+  const direction = event.deltaY < 0 ? 1 : -1;
+  mainZoom = Math.max(MAIN_MIN_ZOOM, Math.min(MAIN_MAX_ZOOM,
+    Math.round((mainZoom + direction * 0.1) * 10) / 10));
+  viewer.style.transform = `scale(${mainZoom})`;
+}, { passive: false });
+// Double-click empty background to restore the fitted size.
+stage.addEventListener('dblclick', event => {
+  if (event.target !== stage && event.target !== viewer) return;
+  mainZoom = 1;
+  viewer.style.transform = 'scale(1)';
+});
+
 document.addEventListener('keydown',e=>{
  if(!zoomOverlay.classList.contains('active'))return;
  if(e.key==='Escape'){e.stopImmediatePropagation();closeZoom();}
  else if(e.key==='ArrowRight'){e.stopImmediatePropagation();turnZoom(1);}
  else if(e.key==='ArrowLeft'){e.stopImmediatePropagation();turnZoom(-1);}
 },true);
+// Detect selection drags so releasing the mouse never turns a page.
+let mainPointerStart = null;
+let mainDragged = false;
+[openBook,closedBook].forEach(book => {
+  book.addEventListener('pointerdown', e => {
+    mainPointerStart = {x:e.clientX,y:e.clientY};
+    mainDragged = false;
+  },true);
+  book.addEventListener('pointermove', e => {
+    if(mainPointerStart && (Math.abs(e.clientX-mainPointerStart.x)>4 || Math.abs(e.clientY-mainPointerStart.y)>4)) mainDragged=true;
+  },true);
+  book.addEventListener('pointerup', () => {mainPointerStart=null;},true);
+});
 // In the catalogue, a simple click changes pages. Selecting text does not.
 openBook.addEventListener('click',e=>{
- if(isAnimating || mode!=='open' || window.getSelection()?.toString())return;
+ if(isAnimating || mode!=='open' || mainDragged || window.getSelection()?.toString())return;
  const rect=openBook.getBoundingClientRect();
  if(e.clientX<rect.left+rect.width/2)goPrevious();else goNext();
 });
