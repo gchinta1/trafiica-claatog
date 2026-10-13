@@ -3095,52 +3095,23 @@ async function goNext() {
     );
 
 
-    // Prepare the hidden replacement page BEFORE the animation starts.
-    const turnBuffer = await prepareTurnPage(
-        typeof nextLeft !== 'undefined' ? nextLeft : previousRight
-    );
+    // Pre-render the destination left page while the current spread is intact.
+    const turnBuffer = await prepareTurnPage(nextLeft);
 
-    flipSheet.style.display =
-        "block";
-
-
-    flipSheet.classList.remove(
-        "flip-next"
-    );
-
-
+    flipSheet.style.display = "block";
+    flipSheet.classList.remove("flip-next", "flip-prev");
     void flipSheet.offsetWidth;
+    flipSheet.classList.add("flip-next");
 
-
-    flipSheet.classList.add(
-        "flip-next"
-    );
-
-
-    /*
-       Change underlying left page
-       slightly before halfway.
-    */
-
-    const midpointSwap = setTimeout(() => {
-        commitTurnPage(turnBuffer, leftCanvas);
-    }, TURN_TIME * .50);
-
-
-    await wait(
-        TURN_TIME + 40
-    );
-
-    clearTimeout(midpointSwap);
-    commitTurnPage(turnBuffer, typeof nextLeft !== 'undefined' ? leftCanvas : rightCanvas);
-    await refreshTurnText(typeof nextLeft !== 'undefined' ? nextLeft : previousRight,
-                          typeof nextLeft !== 'undefined' ? leftCanvas : rightCanvas);
+    // Keep the existing left page untouched throughout the flip.
+    // Updating its canvas halfway caused the visible page flash.
+    await wait(TURN_TIME + 30);
+    commitTurnPage(turnBuffer, leftCanvas);
+    resetFlip();
+    await refreshTurnText(nextLeft, leftCanvas);
 
     leftPageNumber =
         nextLeft;
-
-
-    resetFlip();
 
 
     updatePageControl();
@@ -3258,47 +3229,22 @@ async function goPrevious() {
     );
 
 
-    // Prepare the hidden replacement page BEFORE the animation starts.
-    const turnBuffer = await prepareTurnPage(
-        typeof nextLeft !== 'undefined' ? nextLeft : previousRight
-    );
+    // Pre-render the destination right page without touching the visible one.
+    const turnBuffer = await prepareTurnPage(previousRight);
 
-    flipSheet.style.display =
-        "block";
-
-
-    flipSheet.classList.remove(
-        "flip-prev"
-    );
-
-
+    flipSheet.style.display = "block";
+    flipSheet.classList.remove("flip-next", "flip-prev");
     void flipSheet.offsetWidth;
+    flipSheet.classList.add("flip-prev");
 
-
-    flipSheet.classList.add(
-        "flip-prev"
-    );
-
-
-    const midpointSwap = setTimeout(() => {
-        commitTurnPage(turnBuffer, rightCanvas);
-    }, TURN_TIME * .50);
-
-
-    await wait(
-        TURN_TIME + 40
-    );
-
-    clearTimeout(midpointSwap);
-    commitTurnPage(turnBuffer, typeof nextLeft !== 'undefined' ? leftCanvas : rightCanvas);
-    await refreshTurnText(typeof nextLeft !== 'undefined' ? nextLeft : previousRight,
-                          typeof nextLeft !== 'undefined' ? leftCanvas : rightCanvas);
+    // Do not swap the right-hand canvas at the animation midpoint.
+    await wait(TURN_TIME + 30);
+    commitTurnPage(turnBuffer, rightCanvas);
+    resetFlip();
+    await refreshTurnText(previousRight, rightCanvas);
 
     leftPageNumber =
         previousLeft;
-
-
-    resetFlip();
 
 
     updatePageControl();
