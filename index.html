@@ -956,6 +956,22 @@ button:disabled {
 
 }
 
+
+/* Crisp PDF zoom viewer */
+#pdfZoomOverlay{position:fixed;inset:0;background:#171717;z-index:3000;display:none;flex-direction:column;color:white}
+#pdfZoomOverlay.active{display:flex}
+#pdfZoomToolbar{height:58px;display:flex;align-items:center;justify-content:center;gap:12px;background:#101010;flex-shrink:0;flex-wrap:wrap}
+#pdfZoomToolbar button{font-size:20px;width:40px;height:36px}
+#pdfZoomToolbar .zoomClose{width:44px}
+#pdfZoomValue{font-size:13px;min-width:50px;text-align:center}
+#pdfZoomArea{flex:1;overflow:auto;position:relative;overscroll-behavior:contain}
+#pdfZoomSpread{display:flex;width:max-content;gap:0;margin:auto;min-width:0;min-height:0;padding:25px;align-items:flex-start}
+.zoomPdfPage{position:relative;background:white;box-shadow:0 5px 24px #0009;flex-shrink:0}
+.zoomPdfPage canvas{display:block;width:100%;height:100%}
+.zoomTextLayer{position:absolute;inset:0;overflow:hidden;user-select:text;-webkit-user-select:text;line-height:1;pointer-events:auto}
+.zoomTextLayer span{position:absolute;white-space:pre;transform-origin:0 0;color:transparent;cursor:text;user-select:text;-webkit-user-select:text}
+.zoomTextLayer ::selection{background:rgba(20,110,255,.38);color:transparent}
+#pdfZoomOverlay button{touch-action:manipulation}
 </style>
 
 </head>
@@ -1177,11 +1193,22 @@ button:disabled {
     >
         ›
     </button>
-
-
+    <button id="openPdfZoom" type="button" aria-label="Open clear PDF zoom" title="Clear PDF view / zoom" style="font-size:16px;width:78px">Zoom +</button>
 </footer>
 
 
+
+<div id="pdfZoomOverlay" role="dialog" aria-modal="true" aria-label="Clear PDF viewer">
+ <div id="pdfZoomToolbar">
+  <button id="pdfZoomPrev" title="Previous pages">‹</button>
+  <button id="pdfZoomMinus" title="Zoom out">−</button>
+  <span id="pdfZoomValue">70%</span>
+  <button id="pdfZoomPlus" title="Zoom in">+</button>
+  <button id="pdfZoomNext" title="Next pages">›</button>
+  <button id="pdfZoomClose" class="zoomClose" title="Close zoom">×</button>
+ </div>
+ <div id="pdfZoomArea"><div id="pdfZoomSpread"></div></div>
+</div>
 <script>
 
 /* =========================================================
@@ -3722,6 +3749,111 @@ async function start() {
 
 }
 
+
+
+/* =========================================================
+   HIGH QUALITY PDF ZOOM (vector PDF re-rendering)
+========================================================= */
+const zoomOverlay = document.getElementById('pdfZoomOverlay');
+const zoomArea = document.getElementById('pdfZoomArea');
+const zoomSpread = document.getElementById('pdfZoomSpread');
+const zoomValue = document.getElementById('pdfZoomValue');
+let zoomPercent = 70;
+let zoomRequest = 0;
+let zoomPage = 1;
+const zoomMin = 10, zoomMax = 120;
+function zoomPageNumbers(){
+ if(zoomPage===1 || zoomPage===totalPages) return [zoomPage];
+ const left = zoomPage % 2 === 0 ? zoomPage : zoomPage-1;
+ return [left,left+1].filter(n=>n<=totalPages);
+}
+function currentZoomPage(){
+ if(mode==='front') return 1;
+ if(mode==='back'||mode==='thanks') return totalPages;
+ return leftPageNumber;
+}
+function zoomClamp(v){return Math.min(zoomMax,Math.max(zoomMin,v));}
+async function drawZoom(){
+ if(!pdf || !zoomOverlay.classList.contains('active')) return;
+ const request=++zoomRequest;
+ zoomValue.textContent=zoomPercent+'%';
+ const pages=zoomPageNumbers();
+ zoomSpread.replaceChildren();
+ const baseHeight=Math.max(240,zoomArea.clientHeight-75);
+ // 100% = fit-height; 70% is the default comfortable view.
+ const base=baseHeight/842;
+ for(const n of pages){
+  if(request!==zoomRequest) return;
+  const pg=await pdf.getPage(n);
+  if(request!==zoomRequest) return;
+  const native=pg.getViewport({scale:1});
+  const scale=(baseHeight/native.height)*(zoomPercent/100);
+  const view=pg.getViewport({scale});
+  const pageBox=document.createElement('div');pageBox.className='zoomPdfPage';
+  pageBox.style.width=view.width+'px';pageBox.style.height=view.height+'px';
+  const canvas=document.createElement('canvas');
+  const textLayer=document.createElement('div');textLayer.className='zoomTextLayer';
+  pageBox.append(canvas,textLayer);zoomSpread.append(pageBox);
+  const dpr=Math.min(3,Math.max(2,window.devicePixelRatio||1));
+  canvas.width=Math.round(view.width*dpr);canvas.height=Math.round(view.height*dpr);
+  canvas.style.width=view.width+'px';canvas.style.height=view.height+'px';
+  const ctx=canvas.getContext('2d',{alpha:false});
+  try{
+   await pg.render({canvasContext:ctx,viewport:view,transform:[dpr,0,0,dpr,0,0]}).promise;
+   if(request!==zoomRequest) return;
+   const content=await pg.getTextContent();
+   if(request!==zoomRequest) return;
+   const frag=document.createDocumentFragment();
+   for(const item of content.items){
+    if(!item.str || !item.transform) continue;
+    const tx=pdfjsLib.Util.transform(view.transform,item.transform);
+    const fontHeight=Math.hypot(tx[2],tx[3]);
+    if(!fontHeight) continue;
+    const angle=Math.atan2(tx[1],tx[0]);
+    const span=document.createElement('span');span.textContent=item.str;
+    span.style.left=tx[4]+'px';span.style.top=(tx[5]-fontHeight)+'px';
+    span.style.fontSize=fontHeight+'px';
+    const expectedWidth=(item.width||0)*scale;
+    const measured=(item.str.length||1)*fontHeight*.5;
+    span.style.transform=`rotate(${angle}rad) scaleX(${expectedWidth>0?expectedWidth/measured:1})`;
+    frag.append(span);
+   }
+   textLayer.append(frag);
+  }catch(err){if(request===zoomRequest)console.error('PDF zoom rendering:',err);}
+ }
+}
+function setZoom(p){zoomPercent=zoomClamp(p);drawZoom();}
+function zoomStep(delta){setZoom(zoomPercent+delta);}
+function openZoom(){
+ if(!pdf || mode==='thanks')return;
+ zoomPage=currentZoomPage();zoomPercent=70;
+ zoomOverlay.classList.add('active');drawZoom();
+}
+function closeZoom(){zoomOverlay.classList.remove('active');++zoomRequest;zoomSpread.replaceChildren();}
+function turnZoom(direction){
+ if(direction>0){if(zoomPage>=totalPages)return;zoomPage=zoomPage===1?2:Math.min(totalPages,(zoomPage%2===0?zoomPage:zoomPage-1)+2);}
+ else{if(zoomPage<=1)return;zoomPage=zoomPage<=3?1:(zoomPage%2===0?zoomPage:zoomPage-1)-2;}
+ drawZoom();
+}
+document.getElementById('openPdfZoom').addEventListener('click',openZoom);
+document.getElementById('pdfZoomClose').addEventListener('click',closeZoom);
+document.getElementById('pdfZoomPlus').addEventListener('click',()=>zoomStep(10));
+document.getElementById('pdfZoomMinus').addEventListener('click',()=>zoomStep(-10));
+document.getElementById('pdfZoomPrev').addEventListener('click',()=>turnZoom(-1));
+document.getElementById('pdfZoomNext').addEventListener('click',()=>turnZoom(1));
+zoomArea.addEventListener('wheel',e=>{e.preventDefault();zoomStep(e.deltaY<0?10:-10);},{passive:false});
+document.addEventListener('keydown',e=>{
+ if(!zoomOverlay.classList.contains('active'))return;
+ if(e.key==='Escape'){e.stopImmediatePropagation();closeZoom();}
+ else if(e.key==='ArrowRight'){e.stopImmediatePropagation();turnZoom(1);}
+ else if(e.key==='ArrowLeft'){e.stopImmediatePropagation();turnZoom(-1);}
+},true);
+// In the catalogue, a simple click changes pages. Selecting text does not.
+openBook.addEventListener('click',e=>{
+ if(isAnimating || mode!=='open' || window.getSelection()?.toString())return;
+ const rect=openBook.getBoundingClientRect();
+ if(e.clientX<rect.left+rect.width/2)goPrevious();else goNext();
+});
 
 start();
 
