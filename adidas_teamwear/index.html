@@ -3889,6 +3889,20 @@ document.getElementById('detailNext').addEventListener('click',()=>{
 });
 document.getElementById('detailMinus').addEventListener('click',()=>adjustDetailZoom(-.1));
 document.getElementById('detailPlus').addEventListener('click',()=>adjustDetailZoom(.1));
+// Mouse-wheel zoom in the MAIN catalogue too (including the front cover).
+// Clicking pages still turns pages, and dragging text still selects it.
+let mainZoom = 1;
+const mainStage = document.getElementById('stage');
+const mainViewer = document.getElementById('viewer');
+mainViewer.style.transformOrigin = 'center center';
+mainViewer.style.transition = 'transform 120ms ease-out';
+mainStage.addEventListener('wheel', e => {
+    if (detailOverlay.style.display === 'flex' || e.ctrlKey) return;
+    e.preventDefault();
+    mainZoom = Math.max(0.4, Math.min(2.4,
+        Math.round((mainZoom + (e.deltaY < 0 ? 0.1 : -0.1))*10)/10));
+    mainViewer.style.transform = `scale(${mainZoom})`;
+}, {passive:false});
 // Mouse wheel zoom inside the viewer; hold Ctrl to use browser-native zoom instead.
 detailScroll.addEventListener('wheel',e=>{
     if(e.ctrlKey) return;
