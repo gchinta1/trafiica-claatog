@@ -533,8 +533,8 @@ body {
 
     animation:
         flipNext
-        400ms
-        cubic-bezier(.45,.05,.20,1)
+        650ms
+        cubic-bezier(.42,0,.20,1)
         forwards;
 }
 
@@ -542,7 +542,7 @@ body {
 #flipSheet.flip-next #flipShade {
     animation:
         flipShade
-        400ms
+        650ms
         ease-in-out
         forwards;
 }
@@ -559,8 +559,8 @@ body {
 
     animation:
         flipPrev
-        400ms
-        cubic-bezier(.45,.05,.20,1)
+        650ms
+        cubic-bezier(.42,0,.20,1)
         forwards;
 }
 
@@ -568,7 +568,7 @@ body {
 #flipSheet.flip-prev #flipShade {
     animation:
         flipShade
-        400ms
+        650ms
         ease-in-out
         forwards;
 }
@@ -641,15 +641,15 @@ body {
     }
 
     30% {
-        opacity: .16;
+        opacity: .12;
     }
 
     50% {
-        opacity: .36;
+        opacity: .24;
     }
 
     70% {
-        opacity: .16;
+        opacity: .12;
     }
 
     100% {
@@ -1196,19 +1196,19 @@ button:disabled {
 */
 
 const PDF_FILE =
-    "./Nike_Team_Catalog_2026_EL.pdf?v=3";
+    "/Nike_Team_Catalog_2026_EL.pdf?v=4";
 
 
 /* Interior page flip */
 
 const TURN_TIME =
-    400;
+    650;
 
 
 /* Cover/open/close transition */
 
 const COVER_TIME =
-    520;
+    650;
 
 
 /* Thank-you delay after back cover */
@@ -3625,13 +3625,16 @@ async function start() {
     try {
 
 
-        pdf =
-
-            await pdfjsLib
-                .getDocument(
-                    PDF_FILE
-                )
-                .promise;
+        // Check the actual HTTP response before passing the file to PDF.js.
+        const response = await fetch(PDF_FILE, { cache: "no-store" });
+        if (!response.ok) {
+            throw new Error(`PDF request failed: HTTP ${response.status} ${response.statusText}. URL: ${new URL(PDF_FILE, location.href).href}`);
+        }
+        const pdfBytes = new Uint8Array(await response.arrayBuffer());
+        if (pdfBytes.length < 5 || String.fromCharCode(...pdfBytes.slice(0, 5)) !== "%PDF-") {
+            throw new Error(`The URL returned a non-PDF response (${response.headers.get("content-type") || "unknown type"}). Check GitHub Pages deployment and the PDF path.`);
+        }
+        pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
 
 
         totalPages =
@@ -3698,24 +3701,22 @@ async function start() {
         );
 
 
-        loading.innerHTML =
-            `
-            <div style="
-                text-align:center;
-                color:#ddd;
-                font-size:13px;
-                line-height:1.7;
-            ">
-                <strong style="
-                    font-size:18px;
-                    color:#fff;
-                ">
-                    INTERSPORT
-                </strong>
-                <br>
-                Could not load the Nike catalogue PDF. Check that Nike_Team_Catalog_2026_EL.pdf is uploaded alongside index.html.
-            </div>
-            `;
+        loading.innerHTML = "";
+        const panel = document.createElement("div");
+        panel.style.cssText = "max-width:650px;padding:24px;text-align:center;color:#ddd;font-size:14px;line-height:1.7";
+        const heading = document.createElement("strong");
+        heading.style.cssText = "font-size:22px;color:#fff";
+        heading.textContent = "INTERSPORT";
+        const message = document.createElement("p");
+        message.textContent = "Could not load Nike catalogue: " + (error?.message || String(error));
+        const link = document.createElement("a");
+        link.href = PDF_FILE;
+        link.textContent = "Open PDF directly to test";
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.style.cssText = "color:#fff;text-decoration:underline";
+        panel.append(heading, message, link);
+        loading.append(panel);
 
     }
 
