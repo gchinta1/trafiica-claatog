@@ -3054,61 +3054,31 @@ async function goNext() {
         true;
 
 
-    /*
-       Moving page front:
-       current right page.
-    */
+    // Render ALL destination pages offscreen first. Never render into a
+    // visible canvas before or during the animation (that caused the flash).
+    const [frontBuffer, backBuffer, rightBuffer, leftBuffer] = await Promise.all([
+        prepareTurnPage(currentRight),
+        prepareTurnPage(nextLeft),
+        prepareTurnPage(nextRight),
+        prepareTurnPage(nextLeft)
+    ]);
+    commitTurnPage(frontBuffer, flipFrontCanvas);
+    commitTurnPage(backBuffer, flipBackCanvas);
 
-    await renderPage(
-
-        currentRight,
-
-        flipFrontCanvas
-
-    );
-
-
-    /*
-       Moving page back:
-       next left page.
-    */
-
-    await renderPage(
-
-        nextLeft,
-
-        flipBackCanvas
-
-    );
-
-
-    /*
-       New right page underneath.
-    */
-
-    await renderPage(
-
-        nextRight,
-
-        rightCanvas
-
-    );
-
-
-    // Pre-render the destination left page while the current spread is intact.
-    const turnBuffer = await prepareTurnPage(nextLeft);
-
+    // The new right page sits beneath the flipping sheet; update only when
+    // the sheet is already covering it, not during the loading period.
     flipSheet.style.display = "block";
     flipSheet.classList.remove("flip-next", "flip-prev");
+    commitTurnPage(rightBuffer, rightCanvas);
     void flipSheet.offsetWidth;
     flipSheet.classList.add("flip-next");
-
-    // Keep the existing left page untouched throughout the flip.
-    // Updating its canvas halfway caused the visible page flash.
     await wait(TURN_TIME + 30);
-    commitTurnPage(turnBuffer, leftCanvas);
+    commitTurnPage(leftBuffer, leftCanvas);
     resetFlip();
-    await refreshTurnText(nextLeft, leftCanvas);
+    await Promise.all([
+        refreshTurnText(nextLeft, leftCanvas),
+        refreshTurnText(nextRight, rightCanvas)
+    ]);
 
     leftPageNumber =
         nextLeft;
@@ -3202,46 +3172,27 @@ async function goPrevious() {
         currentLeft - 1;
 
 
-    await renderPage(
-
-        currentLeft,
-
-        flipFrontCanvas
-
-    );
-
-
-    await renderPage(
-
-        previousRight,
-
-        flipBackCanvas
-
-    );
-
-
-    await renderPage(
-
-        previousLeft,
-
-        leftCanvas
-
-    );
-
-
-    // Pre-render the destination right page without touching the visible one.
-    const turnBuffer = await prepareTurnPage(previousRight);
-
+    // Prepare every frame in hidden canvases to avoid visible PDF.js clears.
+    const [frontBuffer, backBuffer, leftBuffer, rightBuffer] = await Promise.all([
+        prepareTurnPage(currentLeft),
+        prepareTurnPage(previousRight),
+        prepareTurnPage(previousLeft),
+        prepareTurnPage(previousRight)
+    ]);
+    commitTurnPage(frontBuffer, flipFrontCanvas);
+    commitTurnPage(backBuffer, flipBackCanvas);
     flipSheet.style.display = "block";
     flipSheet.classList.remove("flip-next", "flip-prev");
+    commitTurnPage(leftBuffer, leftCanvas);
     void flipSheet.offsetWidth;
     flipSheet.classList.add("flip-prev");
-
-    // Do not swap the right-hand canvas at the animation midpoint.
     await wait(TURN_TIME + 30);
-    commitTurnPage(turnBuffer, rightCanvas);
+    commitTurnPage(rightBuffer, rightCanvas);
     resetFlip();
-    await refreshTurnText(previousRight, rightCanvas);
+    await Promise.all([
+        refreshTurnText(previousLeft, leftCanvas),
+        refreshTurnText(previousRight, rightCanvas)
+    ]);
 
     leftPageNumber =
         previousLeft;
