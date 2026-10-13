@@ -1216,7 +1216,7 @@ button:disabled {
     <span id="detailCounter" style="font-size:13px;min-width:70px;text-align:center"></span>
     <button id="detailNext" aria-label="Next detail page">›</button>
     <button id="detailMinus" aria-label="Zoom out">−</button>
-    <span id="detailZoomLabel" style="font-size:13px;min-width:45px;text-align:center">40%</span>
+    <span id="detailZoomLabel" style="font-size:13px;min-width:45px;text-align:center">70%</span>
     <button id="detailPlus" aria-label="Zoom in">+</button>
     <button id="detailClose" aria-label="Close zoom">✕</button>
   </div>
@@ -3768,7 +3768,7 @@ const detailPageWrap = document.getElementById('detailPageWrap');
 const detailTextClip = document.getElementById('detailTextClip');
 const detailTextLayer = document.getElementById('detailTextLayer');
 let detailPage = 1;
-let detailZoom = .4;
+let detailZoom = .7;
 let detailRenderSerial = 0;
 let detailRenderTask = null;
 let detailRenderPromise = Promise.resolve();
@@ -3838,7 +3838,7 @@ function renderDetail() {
 function openDetail(n) {
     if (!pdf || isAnimating) return;
     detailPage = spreadStart(n);
-    detailZoom = .4;
+    detailZoom = .7;
     detailOverlay.style.display = 'flex';
     detailScroll.scrollTop = 0;
     detailScroll.scrollLeft = 0;
